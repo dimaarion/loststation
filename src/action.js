@@ -227,3 +227,22 @@ export const getCameraOffset = (playerX, playerY, viewBoxWidth = 340, viewBoxHei
 
     return { offsetX, offsetY };
 };
+
+export const countTotalTreasures = (boardArray) => {
+    if (!boardArray) return 0;
+
+    let total = 0;
+
+    // Проходим по всем строкам карты
+    boardArray.forEach(row => {
+        // В каждой строке проходим по каждой плитке
+        row.forEach(tile => {
+            // Если поле treasure не null и не undefined, значит, там что-то лежит
+            if (tile.treasure !== null && tile.treasure !== undefined) {
+                total++;
+            }
+        });
+    });
+
+    return total;
+};

@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useState} from "react";
-import {findAvailablePaths, getCameraOffset} from "./action.js";
+import {useCallback, useEffect, useMemo, useState} from "react";
+import {countTotalTreasures, findAvailablePaths, getCameraOffset} from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
 import {SpaceDroidToken} from "./components/Players.jsx";
 import {SciFiDice} from "./components/Objects.jsx";
@@ -14,9 +14,10 @@ export default function Game({maze = []}){
     const [ratio, setRatio] = useState((window.innerWidth + window.innerHeight) / rt);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [gamePhase, setGamePhase] = useState("ROLL");
+
     const [players, setPlayers] = useState([
         { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0, isAI: false },
-        { id: 2, name: 'Механоид ИИ-88', x: 0, y: 0, color: '#FF9900', stepsLeft: 0, isAI: true } // Бот
+        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0, isAI: true } // Бот
     ]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
@@ -195,7 +196,7 @@ export default function Game({maze = []}){
                 setTimeout(() => {
 
                     // Если флаг застревания активен — бот ПОЛНОСТЬЮ пропускает ход
-                    if (botWasStuck) {
+                    /*if (botWasStuck) {
                         setBotWasStuck(false); // Сбрасываем флаг для следующего круга
                         setAvailableMoves([]);
 
@@ -208,7 +209,7 @@ export default function Game({maze = []}){
 
                         setGamePhase('ROLL');
                         return; // Выходим из функции, ничего не вращая
-                    }
+                    }*/
 
                     // --- ОБЫЧНЫЙ ХОД БОТА (если он успешно походил и теперь крутит плитку) ---
                     const clickableTiles = [];
@@ -236,6 +237,14 @@ export default function Game({maze = []}){
             setRatio((window.innerWidth + window.innerHeight) / rt);
         });
     }, []);
+
+    const count = useMemo(()=>{
+       return countTotalTreasures(board);
+    },[board])
+
+    const countTotal = useMemo(()=>{
+        return countTotalTreasures(board);
+    },[])
     
     return <div>
         <svg style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
@@ -277,39 +286,18 @@ export default function Game({maze = []}){
                 </g>
             ))}
             </g>
-            <TopPanel players={players} />
+            <TopPanel countTotal={countTotal} count={count} players={players} />
             <SciFiDice x={size.width / ratio}  isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI} onRollComplete={handleDiceRollComplete}   />
-            <g  onClick={() => {
+            {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g onClick={() => {
                 if (isMovingAnimation) return;
                 setPathsData({}); // Прячем подсветку дорожек
                 setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
             }} cursor={"pointer"}>
-                <rect x={size.width / ratio - 65} y={51} width={60} height={20} fill={"#000"} stroke={"#A0DCE6"}  rx={5} strokeWidth={2} />
-                <text x={size.width / ratio - 58} y={64} fill={"#e4a7c6"} fontSize={9} >Пропустить ход</text>
-            </g>
+                <rect x={size.width / ratio - 65} y={51} width={60} height={20} fill={"#000"} stroke={"#A0DCE6"} rx={5}
+                      strokeWidth={2}/>
+                <text x={size.width / ratio - 58} y={64} fill={"#e4a7c6"} fontSize={9}>Пропустить ход</text>
+            </g>)}
         </svg>
-
-        {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (
-            <button
-                className="skip-turn-btn"
-                onClick={() => {
-                    if (isMovingAnimation) return;
-                    setPathsData({}); // Прячем подсветку дорожек
-                    setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
-                }}
-                style={{
-                    padding: '10px 20px',
-                    background: '#1F242D',
-                    border: '2px solid #FF9900', // Оранжевый Sci-Fi акцент для предупреждения
-                    color: '#FF9900',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold'
-                }}
-            >
-                🛑 Остаться здесь
-            </button>
-        )}
     </div>
 
 }
