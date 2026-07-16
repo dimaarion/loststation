@@ -1,23 +1,29 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {countTotalTreasures, findAvailablePaths, getCameraOffset} from "./action.js";
+import {checkConnection, countTotalTreasures, findAvailablePaths, getCameraOffset} from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
 import {SpaceDroidToken} from "./components/Players.jsx";
 import {SciFiDice} from "./components/Objects.jsx";
 import TopPanel from "./ui/TopPanel.jsx";
+const MODES = {
+    SINGLE: 'SINGLE',
+    SPLIT: 'SPLIT',
+    ASYNC_FRIEND: 'ASYNC_FRIEND',
+    ASYNC_RANDOM: 'ASYNC_RANDOM',
+};
 
-export default function Game({maze = []}){
+export default function Game({mode = "SINGLE", maze = []}){
     const [pathsData, setPathsData] = useState({});
     const [size, setSize] = useState({width: window.innerWidth, height: window.innerHeight});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
     const [botWasStuck, setBotWasStuck] = useState(false);
-    const rt = 1000
+    const [rt, setRt] = useState(1000);
     const [ratio, setRatio] = useState((window.innerWidth + window.innerHeight) / rt);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [gamePhase, setGamePhase] = useState("ROLL");
 
     const [players, setPlayers] = useState([
-        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0, isAI: false },
-        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0, isAI: true } // Бот
+        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0, isAI: false },
+        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0,treasure:0, isAI: false }, // Бот
     ]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
@@ -78,10 +84,19 @@ export default function Game({maze = []}){
             // Проверяем и собираем сокровище на текущей промежуточной плитке
             setBoard(prevBoard =>
                 prevBoard.map(row =>
-                    row.map(tile =>
-                        tile.x === nextX && tile.y === nextY && tile.treasure
-                            ? { ...tile, treasure: null } // Дроид подобрал сокровище на ходу!
-                            : tile
+                    row.map(tile => {
+                        if( tile.x === nextX && tile.y === nextY && tile.treasure){
+                            tile = {...tile, treasure: null}
+                            setPlayers((prev)=>prev.map((el,ind)=>{
+                                if(ind === activePlayerIndex){
+                                    el.treasure += 1
+                                }
+                                return el
+                            }))
+                        }
+
+                        return tile
+                        }
                     )
                 )
             );
@@ -102,7 +117,8 @@ export default function Game({maze = []}){
     const handleTileRotate = useCallback((targetX, targetY) => {
 
         // 1. Проверяем, что сейчас действительно фаза вращения и дроид не находится в движении
-        if (gamePhase === 'MOVE' || isMovingAnimation) return;
+        if (gamePhase !== 'ROTATE' || isMovingAnimation) return;
+
 
         const currentPlayer = players[activePlayerIndex];
 
@@ -124,117 +140,246 @@ export default function Game({maze = []}){
             );
 
             // 4. ПЕРЕКЛЮЧЕНИЕ ХОДА НА СЛЕДУЮЩЕГО ИГРОКА
-            setAvailableMoves([]); // На всякий случай очищаем подсветку
+            setTimeout(()=>{
+                setAvailableMoves([]); // На всякий случай очищаем подсветку
+                setPlayers(prev => {
+                    // Переключаем индекс активного игрока по кругу
+                    const nextPlayerIndex = (activePlayerIndex + 1) % prev.length;
+                    setActivePlayerIndex(nextPlayerIndex);
 
-            setPlayers(prev => {
-                // Переключаем индекс активного игрока по кругу
-                const nextPlayerIndex = (activePlayerIndex + 1) % prev.length;
-                setActivePlayerIndex(nextPlayerIndex);
+                    // Сбрасываем шаги у того игрока, который только что сходил
+                    return prev.map((p, idx) =>
+                        idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p
+                    );
+                });
 
-                // Сбрасываем шаги у того игрока, который только что сходил
-                return prev.map((p, idx) =>
-                    idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p
-                );
-            });
+                // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
+                setGamePhase('ROLL');
+            },1000)
 
-            // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
-            setGamePhase('ROLL');
         }
     },[activePlayerIndex, gamePhase, isMovingAnimation, players]);
 
-   
+
 
     useEffect(() => {
+        if (mode !== MODES.SINGLE) return;
         const currentPlayer = players[activePlayerIndex];
-
-        // Если сейчас ход компьютерного игрока
         if (currentPlayer && currentPlayer.isAI && !isMovingAnimation) {
 
-            // БОТ ДЕЛАЕТ БРОСОК КУБИКА
+            // ==========================================
+            // 1. БОТ ДЕЛАЕТ БРОСОК КУБИКА
+            // ==========================================
             if (gamePhase === 'ROLL') {
                 setTimeout(() => {
-                    // Имитируем бросок (например, выпало случайное число)
                     const rolledNumber = Math.floor(Math.random() * 6) + 1;
-                    handleDiceRollComplete(rolledNumber); // Вызываем вашу функцию завершения броска
-                }, 1200); // Задержка 1.2 секунды для реалистичности
+                    handleDiceRollComplete(rolledNumber);
+                }, 1200);
             }
 
-            // БОТ ДЕЛАЕТ ХОД ПО КОРИДОРАМ
-            // БОТ ДЕЛАЕТ ХОД ПО КОРИДОРАМ
             // ==========================================
-// БОТ В ФАЗЕ ДВИЖЕНИЯ (MOVE)
-// ==========================================
+            // 2. БОТ В ФАЗЕ ДВИЖЕНИЯ (MOVE)
+            // ==========================================
             if (gamePhase === 'MOVE') {
                 setTimeout(() => {
                     const availableKeys = Object.keys(pathsData);
 
-                    // ПРОВЕРКА: Если ходить действительно некуда
                     if (availableKeys.length === 0) {
-                        setBotWasStuck(true); // Запоминаем, что бот застрял!
-                        setGamePhase('ROTATE'); // Переходим к инженерии/пропуску
+                        setGamePhase('ROTATE');
                         return;
                     }
 
-                    setBotWasStuck(false); // Пути есть, всё в порядке
-
-                    // Поиск сокровища или случайный выбор пути
-                    const treasureTileKey = availableKeys.find(key => {
+                    // Шаг A: Ищем все доступные клетки с сокровищами
+                    const treasureKeys = availableKeys.filter(key => {
                         const [x, y] = key.split('-').map(Number);
-                        return board[y][x].treasure !== null;
+                        return board[y]?.[x]?.treasure !== null;
                     });
 
-                    const finalTargetKey = treasureTileKey || availableKeys[Math.floor(Math.random() * availableKeys.length)];
-                    animateRoute(finalTargetKey);
+                    let finalTargetKey = null;
 
+                    if (treasureKeys.length > 0) {
+                        // Если есть плитки с сокровищами, выбираем ту, до которой короче путь
+                        finalTargetKey = treasureKeys.reduce((bestKey, currentKey) => {
+                            const bestLength = pathsData[bestKey].length;
+                            const currentLength = pathsData[currentKey].length;
+                            return currentLength < bestLength ? currentKey : bestKey;
+                        });
+                    } else {
+                        // Шаг B: Если сокровищ в зоне досягаемости нет, ищем ближайшее сокровище на всей карте
+                        let allTreasures = [];
+                        for (let y = 0; y < board.length; y++) {
+                            for (let x = 0; x < board[y].length; x++) {
+                                if (board[y][x].treasure !== null) {
+                                    allTreasures.push({ x, y });
+                                }
+                            }
+                        }
+
+                        if (allTreasures.length > 0) {
+                            // Для каждой доступной для шага клетки считаем минимальное расстояние до любого сокровища
+                            let bestDist = Infinity;
+                            availableKeys.forEach(key => {
+                                const [targetX, targetY] = key.split('-').map(Number);
+
+                                allTreasures.forEach(tr => {
+                                    // Манхэттенское расстояние от конечной точки пути до сокровища
+                                    const dist = Math.abs(targetX - tr.x) + Math.abs(targetY - tr.y);
+                                    if (dist < bestDist) {
+                                        bestDist = dist;
+                                        finalTargetKey = key;
+                                    }
+                                });
+                            });
+                        }
+                    }
+
+                    // Резервный вариант: если сокровищ вообще не осталось на карте, ходим случайно
+                    if (!finalTargetKey) {
+                        finalTargetKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
+                    }
+
+                    animateRoute(finalTargetKey);
                 }, 1000);
             }
 
-// ==========================================
+            // ==========================================
+            // 3. БОТ В ФАЗЕ ВРАЩЕНИЯ (ROTATE)
+            // ==========================================
+            // ==========================================
 // БОТ В ФАЗЕ ВРАЩЕНИЯ (ROTATE)
 // ==========================================
             if (gamePhase === 'ROTATE') {
                 setTimeout(() => {
+                    const botTile = board[currentPlayer.y]?.[currentPlayer.x];
 
-                    // Если флаг застревания активен — бот ПОЛНОСТЬЮ пропускает ход
-                    /*if (botWasStuck) {
-                        setBotWasStuck(false); // Сбрасываем флаг для следующего круга
-                        setAvailableMoves([]);
-
-                        // Переключаем ход на игрока
-                        setPlayers(prev => {
-                            const nextPlayerIndex = (activePlayerIndex + 1) % prev.length;
-                            setActivePlayerIndex(nextPlayerIndex);
-                            return prev.map((p, idx) => idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p);
-                        });
-
-                        setGamePhase('ROLL');
-                        return; // Выходим из функции, ничего не вращая
-                    }*/
-
-                    // --- ОБЫЧНЫЙ ХОД БОТА (если он успешно походил и теперь крутит плитку) ---
+                    // 1. Собираем все плитки, которые бот может вращать (расстояние <= 1)
                     const clickableTiles = [];
                     for (let y = 0; y < board.length; y++) {
                         for (let x = 0; x < board[y].length; x++) {
                             const distance = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
                             if (distance <= 1) {
-                                clickableTiles.push({ x, y });
+                                clickableTiles.push(board[y][x]);
                             }
                         }
                     }
 
-                    const randomTile = clickableTiles[Math.floor(Math.random() * clickableTiles.length)];
-                    handleTileRotate(randomTile.x, randomTile.y);
+                    if (clickableTiles.length === 0) {
+                        setGamePhase('');
+                        return;
+                    }
+
+                    let bestTileToRotate = null;
+
+
+                    // Ищем ближайшее сокровище на карте, чтобы понять, куда вообще боту хочется идти
+                    let nearestTreasure = null;
+                    let minDistance = Infinity;
+                    for (let y = 0; y < board.length; y++) {
+                        for (let x = 0; x < board[y].length; x++) {
+                            if (board[y][x].treasure !== null) {
+                                const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
+                                if (dist < minDistance) {
+                                    minDistance = dist;
+                                    nearestTreasure = board[y][x];
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. СИМУЛЯЦИЯ: Пробуем вращать доступные плитки в "уме"
+                    for (let tile of clickableTiles) {
+                        // Пробуем 3 варианта поворота: +90, +180, +270
+                        for (let rotationOffset of [90, 180, 270]) {
+                            const simulatedRotation = (tile.rotation + rotationOffset) % 360;
+                            const simulatedTile = { ...tile, rotation: simulatedRotation };
+
+                            // Ситуация А: Если мы крутим соседнюю плитку
+                            if (tile.x !== currentPlayer.x || tile.y !== currentPlayer.y) {
+                                // Проверяем, соединит ли этот поворот бота с этой соседней плиткой
+                                const connected = checkConnection(botTile, simulatedTile);
+
+                                if (connected) {
+                                    // Если на этой плитке лежит сокровище — это идеальный кандидат!
+                                    if (tile.treasure !== null) {
+                                        bestTileToRotate = tile;
+                                        break;
+                                    }
+
+                                    // Если сокровище дальше, проверяем, приближает ли нас эта плитка к цели
+                                    if (nearestTreasure) {
+                                        const distFromConnectedToTreasure = Math.abs(tile.x - nearestTreasure.x) + Math.abs(tile.y - nearestTreasure.y);
+                                        if (distFromConnectedToTreasure < minDistance) {
+                                            bestTileToRotate = tile;
+                                        }
+                                    }
+                                }
+                            }
+                            // Ситуация Б: Если бот крутит плитку под самим собой
+                            else {
+                                // Проверяем, с какими соседями соединит бота его собственный поворот
+                                for (let neighbor of clickableTiles) {
+                                    if (neighbor.x === currentPlayer.x && neighbor.y === currentPlayer.y) continue;
+
+                                    const connected = checkConnection(simulatedTile, neighbor);
+                                    // Если поворот открывает проход к соседу с сокровищем
+                                    if (connected && neighbor.treasure !== null) {
+                                        bestTileToRotate = tile;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (bestTileToRotate) break; // Нашли отличное решение, прекращаем поиск
+                    }
+
+                    // 3. ЭВРИСТИКА-ВРЕДИТЕЛЬ (если себе открыть путь не получается, мешаем человеку)
+                    if (!bestTileToRotate) {
+                        const humanPlayer = players.find(p => !p.isAI);
+                        if (humanPlayer) {
+                            const humanTile = board[humanPlayer.y]?.[humanPlayer.x];
+
+                            // Ищем плитку рядом с человеком, которую мы можем повернуть, чтобы сломать ему проход
+                            const tileToSabotage = clickableTiles.find(tile => {
+                                const isBotOwnTile = tile.x === currentPlayer.x && tile.y === currentPlayer.y;
+                                if (isBotOwnTile) return false;
+
+                                // Проверяем, соединен ли сейчас человек с этой плиткой
+                                const isConnectedToHumanNow = checkConnection(humanTile, tile);
+                                if (isConnectedToHumanNow) {
+                                    // Если мы её повернем, связь прервется — это отличная диверсия!
+                                    return true;
+                                }
+                                return false;
+                            });
+
+                            if (tileToSabotage) {
+                                bestTileToRotate = tileToSabotage;
+                            }
+                        }
+                    }
+
+                    // 4. ДЕФОЛТНЫЙ ВЫБОР (если умных ходов нет, крутим случайную соседнюю плитку, но не под собой)
+                    if (!bestTileToRotate) {
+                        const safeTiles = clickableTiles.filter(t => !(t.x === currentPlayer.x && t.y === currentPlayer.y));
+                        const pool = safeTiles.length > 0 ? safeTiles : clickableTiles;
+                        bestTileToRotate = pool[Math.floor(Math.random() * pool.length)];
+                    }
+
+                    // Физически поворачиваем выбранную плитку в игре
+                    handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
+                    setGamePhase('');
 
                 }, 1500);
             }
         }
-    }, [gamePhase, activePlayerIndex, players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, botWasStuck]);
+    }, [gamePhase, activePlayerIndex, players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
 
 
     useEffect(() => {
         window.addEventListener('resize', ()=>{
             setSize({width: window.innerWidth, height: window.innerHeight});
             setRatio((window.innerWidth + window.innerHeight) / rt);
+
         });
     }, []);
 
@@ -245,14 +390,14 @@ export default function Game({maze = []}){
     const countTotal = useMemo(()=>{
         return countTotalTreasures(board);
     },[])
-    
+
     return <div>
         <svg style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
             <g>
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
             </g>
-
-            <g transform={`translate(${offsetX}, ${offsetY})`} style={{ transition: 'transform 0.4s ease-in-out' }}>
+            <svg>
+                <g transform={`translate(${offsetX}, ${offsetY}) `} style={{ transition: 'transform 0.4s ease-in-out' }}>
             {board.map((item, i) => item.map((el)=> {
                 const tileKey = `${el.x}-${el.y}`;
                 const isHighlight =  gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
@@ -282,11 +427,12 @@ export default function Game({maze = []}){
                     transform={`translate(${player.x * 100}, ${player.y * 100})`}
                     style={{ transition: 'transform 0.25s ease-in-out' }} // Плавное движение дроида
                 >
-                    <SpaceDroidToken color={player.color} />
+                    <SpaceDroidToken treasure={player.treasure}   name={player.name} color={player.color} />
                 </g>
             ))}
             </g>
-            <TopPanel countTotal={countTotal} count={count} players={players} />
+            </svg>
+            <TopPanel currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={players} />
             <SciFiDice x={size.width / ratio}  isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI} onRollComplete={handleDiceRollComplete}   />
             {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g onClick={() => {
                 if (isMovingAnimation) return;

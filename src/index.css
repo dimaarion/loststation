@@ -7,3 +7,6 @@ body{
     font-style: normal;
 }
 
+img.no-search {
+    pointer-events: none;
+}

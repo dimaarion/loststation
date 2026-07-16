@@ -1,3 +1,5 @@
+import Treasures from "./Treasures.jsx";
+
 export default function SpaceTileTShape ({ rotation = 0, translate = {x:0,y:0}, treasure = null, onClick }){
     return (
         <g
@@ -72,11 +74,7 @@ export default function SpaceTileTShape ({ rotation = 0, translate = {x:0,y:0}, 
             </g>
 
             {/* 4. Отрендерить сокровище ровно по центру [50, 50] */}
-            {treasure && (
-                <g transform="translate(50, 50)">
-                    {/* ... SVG код сокровища из предыдущих плиток ... */}
-                </g>
-            )}
+            <Treasures treasure={treasure}/>
         </g>
     );
 };

@@ -1,4 +1,3 @@
-// Константы типов плиток
 export const TILE_TYPES = ['straight', 'corner', 't_shape'];
 
 /**
@@ -9,7 +8,7 @@ export const TILE_TYPES = ['straight', 'corner', 't_shape'];
  */
 const generateTreasuresList = (count, gridSize) => {
     const treasures = [];
-    const types = ['energy_core', 'data_pad', 'alien_artifact', 'keycard'];
+    const types = ['energy_core', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter'];
 
     // ГАРАНТИЯ: Если count меньше 1, принудительно устанавливаем минимум 1 сокровище
     const finalCount = Math.max(1, count);
@@ -122,7 +121,7 @@ const canMoveBetween = (tileA, tileB, dir) => {
     return exitsA[dir] && exitsB[oppositeDir];
 };
 
-export const findAvailableMoves = (startX, startY, stepsLeft, board) => {
+/*export const findAvailableMoves = (startX, startY, stepsLeft, board) => {
     const gridSize = board.length;
     const visited = new Set(); // Посещенные плитки
     const queue = [[startX, startY, 0]]; // Очередь: [x, y, currentDist]
@@ -169,7 +168,7 @@ export const findAvailableMoves = (startX, startY, stepsLeft, board) => {
     }
 
     return availableTiles; // Массив строк вида ["1-0", "1-1", "2-1"]
-};
+};*/
 
 export const findAvailablePaths = (startX, startY, stepsLeft, board) => {
     const gridSize = board.length;
@@ -237,6 +236,7 @@ export const countTotalTreasures = (boardArray) => {
     boardArray.forEach(row => {
         // В каждой строке проходим по каждой плитке
         row.forEach(tile => {
+
             // Если поле treasure не null и не undefined, значит, там что-то лежит
             if (tile.treasure !== null && tile.treasure !== undefined) {
                 total++;
@@ -246,3 +246,23 @@ export const countTotalTreasures = (boardArray) => {
 
     return total;
 };
+
+// Проверяет, соединены ли две плитки с учетом их координат
+// dir: 0 = Вверх, 1 = Вправо, 2 = Вниз, 3 = Влево
+export const checkConnection = (tileA, tileB) => {
+    if (!tileA || !tileB) return false;
+
+    // Определяем направление от A к B
+    let dir = -1;
+    if (tileB.y === tileA.y - 1 && tileB.x === tileA.x) dir = 0; // Вверх
+    if (tileB.x === tileA.x + 1 && tileB.y === tileA.y) dir = 1; // Вправо
+    if (tileB.y === tileA.y + 1 && tileB.x === tileA.x) dir = 2; // Вниз
+    if (tileB.x === tileA.x - 1 && tileB.y === tileA.y) dir = 3; // Влево
+
+    if (dir === -1) return false; // Плитки не соседние
+
+    return canMoveBetween(tileA, tileB, dir);
+};
+
+
+

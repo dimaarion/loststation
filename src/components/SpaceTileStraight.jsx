@@ -1,3 +1,5 @@
+import Treasures from "./Treasures.jsx";
+
 export default function SpaceTileStraight({ rotation = 0, translate = {x:0,y:0}, treasure = null, onClick }){
     return (
         <g
@@ -59,27 +61,7 @@ export default function SpaceTileStraight({ rotation = 0, translate = {x:0,y:0},
             </g>
 
             {/* 4. Отрендерить сокровище по центру, если оно передано */}
-            {treasure && (
-                <g transform="translate(50, 50)">
-                    {treasure === 'energy_core' && (
-                        /* Энергоядро: Капсула со светящейся плазмой */
-                        <g>
-                            <rect x="-8" y="-12" width="16" height="24" rx="4" fill="#2D3748" stroke="#FFD700" strokeWidth="1.5" />
-                            <rect x="-5" y="-8" width="10" height="16" rx="2" fill="#00FF88" opacity="0.8" className="pulse" />
-                        </g>
-                    )}
-                    {treasure === 'data_pad' && (
-                        /* Инфопланшет: Квадратный гаджет */
-                        <g>
-                            <rect x="-11" y="-14" width="22" height="28" rx="2" fill="#FFD700" />
-                            <rect x="-8" y="-11" width="16" height="20" fill="#1A202C" />
-                            <line x1="-5" y1="-6" x2="5" y2="-6" stroke="#00F0FF" strokeWidth="1" />
-                            <line x1="-5" y1="-2" x2="2" y2="-2" stroke="#00F0FF" strokeWidth="1" />
-                            <line x1="-5" y1="2" x2="5" y2="2" stroke="#00F0FF" strokeWidth="1" />
-                        </g>
-                    )}
-                </g>
-            )}
+            <Treasures treasure={treasure}/>
         </g>
     );
 };
