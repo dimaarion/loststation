@@ -1,12 +1,34 @@
 import Treasures from "./Treasures.jsx";
+import {useSpring,animated} from "@react-spring/web";
+import {RotateIcon} from "./Objects.jsx";
+import useStore from "../store.js";
 
-export default function SpaceTileTShape ({ rotation = 0, translate = {x:0,y:0}, treasure = null, onClick }){
+
+export default function SpaceTileTShape ({ angle = 0, translate = {x:0,y:0}, treasure = null, onClick, player }){
+    const gamePhase = useStore((state) => state.gamePhase);
+    const { rotation } = useSpring({
+        rotation: angle, // Сюда передаем 0, 90, 180 или 270 градусов из стейта
+        config: {
+            tension: 180, // Жесткость пружины
+            friction: 22  // Сопротивление (чем меньше, тем сильнее «пружинит» в конце)
+        }
+    });
+
+    const  tileRotate  = useSpring({
+        from:{transform:"rotate(0deg)"},
+        to:[{transform:"rotate(360deg)"}],
+        loop:true,
+        config: {
+            duration:5000
+        }
+    });
+
+    const distance = Math.abs(player.x - translate.x / 100) + Math.abs(player.y - translate.y / 100);
+
     return (
-        <g
-            transform={`translate(${translate.x}, ${translate.y}) rotate(${rotation}, 50, 50)`}
-            onClick={()=>onClick(translate.x / 100, translate.y / 100)}
-            style={{ transition: 'transform 0.2s ease-in-out' }}
-        >
+        <g transform={`translate(${translate.x}, ${translate.y})`}
+           onClick={()=>onClick(translate.x / 100, translate.y / 100)}>
+        <animated.g transform={rotation.to(r => `rotate(${r}, 50, 50)`)}>
             {/* 1. Массивный металлический корпус (Стены/Основа отсека) */}
             <rect width="100" height="100" fill="#1F242D" stroke="#11141A" strokeWidth="2" />
 
@@ -74,7 +96,11 @@ export default function SpaceTileTShape ({ rotation = 0, translate = {x:0,y:0}, 
             </g>
 
             {/* 4. Отрендерить сокровище ровно по центру [50, 50] */}
+            <g transform={'translate(50 50)'}>
+                {distance <= 1 && gamePhase === "ROTATE"?<animated.g style={tileRotate}><RotateIcon/></animated.g>:""}
+            </g>
             <Treasures treasure={treasure}/>
+        </animated.g>
         </g>
     );
 };

@@ -1,5 +1,17 @@
 export const TILE_TYPES = ['straight', 'corner', 't_shape'];
 
+export const DROID_TYPE = ["base","II-88"]
+
+export function routable(n) {
+    return Math.PI / 180 * n;
+}
+
+export function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min);
+}
+
 /**
  * Генерирует массив сокровищ для уровня
  * @param {number} count - сколько сокровищ нужно создать

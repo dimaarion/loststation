@@ -1,6 +1,25 @@
-export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type = "test" }) => {
+
+import {useSpring, animated} from '@react-spring/web';
+
+export const DroidSprite = ({ x = 0, y = 0, tileSize = 100,color = '#00F0FF', name="", treasure = 0, type = "base"  }) => {
+    // Пружина рассчитывает физические координаты на основе сетки
+    const position = useSpring({
+        transform: `translate(${x * tileSize}px, ${y * tileSize}px)`,
+        config: {
+            tension: 210,
+            friction: 20 // Мягкое, контролируемое скольжение без лишней тряски
+        }
+    });
+
+    return (
+        <animated.g style={position}>
+           <SpaceDroidToken type={type} treasure={treasure} color={color} name={name} />
+        </animated.g>
+    );
+};
+export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type = "base" }) => {
     switch (type) {
-        case "test":
+        case "II-88":
             return <svg x={10} width="80" height="80" viewBox="0 0 120 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
 
@@ -31,15 +50,16 @@ export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type
 
 
                     <text x="60" y="24" fill="#FFFFFF" fontFamily="monospace" fontSize="10" fontWeight="bold" textAnchor="middle" letterSpacing="1">
-                        II-88
+                        {name}
                     </text>
 
+                    <g transform={`translate(-25 0)`}>
+                         <path d="M42 33 L46 37 L42 41 L38 37 Z" fill="#00F0FF" opacity="0.9"/>
+                         <text x="54" y="40" fill="#00F0FF" fontFamily="monospace" fontSize="9" fontWeight="bold">
+                            {treasure}
+                        </text>
+                    </g>
 
-                    <path d="M42 33 L46 37 L42 41 L38 37 Z" fill="#00F0FF" opacity="0.9"/>
-
-                    <text x="54" y="40" fill="#00F0FF" fontFamily="monospace" fontSize="9" fontWeight="bold">
-                        03/05
-                    </text>
                 </g>
 
 
@@ -84,6 +104,32 @@ export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type
                     </g>
                 </g>
             </svg>
+        case "base":
+            return  <g transform="translate(50, 50)">
+                {/* Тень под дроидом для объема */}
+                <circle cx="0" cy="4" r="18" fill="#000" opacity="0.4" />
+
+                {/* Механический корпус дроида */}
+                <circle cx="0" cy="0" r="18" fill="#2D3748" stroke="#4A5568" strokeWidth="2" />
+                <circle cx="0" cy="0" r="14" fill="#1A202C" stroke="#2D3748" strokeWidth="1" />
+
+                {/* Внешние технические пазы/шасси (4 симметричных элемента) */}
+                <rect x="-20" y="-3" width="4" height="6" rx="1" fill="#4A5568" transform="rotate(0)" />
+                <rect x="-20" y="-3" width="4" height="6" rx="1" fill="#4A5568" transform="rotate(90)" />
+                <rect x="-20" y="-3" width="4" height="6" rx="1" fill="#4A5568" transform="rotate(180)" />
+                <rect x="-20" y="-3" width="4" height="6" rx="1" fill="#4A5568" transform="rotate(270)" />
+
+                {/* Центральный светящийся фотонный глаз/локатор */}
+                <circle cx="0" cy="0" r="6" fill={color} opacity="0.3" />
+                <circle cx="0" cy="0" r="4" fill="#FFF" />
+
+                {/* Направление взгляда (маленькая неоновая точка-антенна впереди) */}
+                <circle cx="0" cy="-10" r="2" fill={color} />
+                <g transform={`translate(${-(name.length / 2) * 4} -30)`}>
+                    <text  fill={"white"} fontSize={10}>{name}</text>
+                    <text x={6} y={10}  fill={"white"} fontSize={10}>{treasure}</text>
+                </g>
+            </g>
         default:
             return (
                 <g transform="translate(50, 50)">

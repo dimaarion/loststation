@@ -1,9 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {checkConnection, countTotalTreasures, findAvailablePaths, getCameraOffset} from "./action.js";
+import {checkConnection, countTotalTreasures, findAvailablePaths, getCameraOffset, getRandomInt} from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
-import {SpaceDroidToken} from "./components/Players.jsx";
+import {DroidSprite} from "./components/Players.jsx";
 import {SciFiDice} from "./components/Objects.jsx";
 import TopPanel from "./ui/TopPanel.jsx";
+import {useSpring, animated} from '@react-spring/web';
+import useStore from "./store.js";
 const MODES = {
     SINGLE: 'SINGLE',
     SPLIT: 'SPLIT',
@@ -11,22 +13,29 @@ const MODES = {
     ASYNC_RANDOM: 'ASYNC_RANDOM',
 };
 
+
 export default function Game({mode = "SINGLE", maze = []}){
     const [pathsData, setPathsData] = useState({});
     const [size, setSize] = useState({width: window.innerWidth, height: window.innerHeight});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
-    const [botWasStuck, setBotWasStuck] = useState(false);
     const [rt, setRt] = useState(1000);
     const [ratio, setRatio] = useState((window.innerWidth + window.innerHeight) / rt);
     const [availableMoves, setAvailableMoves] = useState([]);
-    const [gamePhase, setGamePhase] = useState("ROLL");
-
-    const [players, setPlayers] = useState([
-        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0, isAI: false },
-        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0,treasure:0, isAI: false }, // Бот
-    ]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
+    const [skipMoveActive, setSkipMoveActive] = useState(false);
+    const gamePhase = useStore((state) => state.gamePhase);
+    const stars = useStore((state) => state.stars);
+
+
+
+
+    const [players, setPlayers] = useState([
+        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
+        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0,treasure:0, type:"II-88", isAI: false }, // Бот
+    ]);
+
+
 
 
     const { offsetX, offsetY } = getCameraOffset(
@@ -41,11 +50,9 @@ export default function Game({mode = "SINGLE", maze = []}){
         // Находим все пути вдоль стен
         const paths = findAvailablePaths(player.x, player.y, result, board);
         setPathsData(paths);
-        setGamePhase('MOVE');
+        useStore.getState().setGamePhase('MOVE');
        return null
     },[players, activePlayerIndex, board]);
-
-
 
     const animateRoute = useCallback((targetKey) => {
         if (isMovingAnimation) return;
@@ -56,7 +63,7 @@ export default function Game({mode = "SINGLE", maze = []}){
         // СЛУЧАЙ 1: Игрок никуда не идет (выпало 0 или кликнул на свою текущую клетку)
         if (route.length <= 1) {
             setPathsData({}); // Сбрасываем подсвеченные пути
-            setGamePhase('ROTATE'); // Сразу даем возможность вращать плитки вокруг себя
+            useStore.getState().setGamePhase('ROTATE'); // Сразу даем возможность вращать плитки вокруг себя
             return;
         }
 
@@ -70,7 +77,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 clearInterval(movementInterval);
                 setIsMovingAnimation(false);
                 setPathsData({});
-                setGamePhase('ROTATE');
+                useStore.getState().setGamePhase('ROTATE');
                 return;
             }
 
@@ -108,10 +115,10 @@ export default function Game({mode = "SINGLE", maze = []}){
                 clearInterval(movementInterval);
                 setIsMovingAnimation(false);
                 setPathsData({}); // Сбрасываем подсвеченные пути
-                setGamePhase('ROTATE'); // Переходим к вращению плиток
+                useStore.getState().setGamePhase('ROTATE'); // Переходим к вращению плиток
             }
 
-        }, 250); // Скорость шага дроида
+        }, 500); // Скорость шага дроида
     }, [activePlayerIndex, isMovingAnimation, pathsData]);
 
     const handleTileRotate = useCallback((targetX, targetY) => {
@@ -154,7 +161,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 });
 
                 // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
-                setGamePhase('ROLL');
+                useStore.getState().setGamePhase('ROLL');
             },1000)
 
         }
@@ -185,7 +192,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                     const availableKeys = Object.keys(pathsData);
 
                     if (availableKeys.length === 0) {
-                        setGamePhase('ROTATE');
+                        useStore.getState().setGamePhase('ROTATE');
                         return;
                     }
 
@@ -264,7 +271,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                     }
 
                     if (clickableTiles.length === 0) {
-                        setGamePhase('');
+                        useStore.getState().setGamePhase('');
                         return;
                     }
 
@@ -367,7 +374,7 @@ export default function Game({mode = "SINGLE", maze = []}){
 
                     // Физически поворачиваем выбранную плитку в игре
                     handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
-                    setGamePhase('');
+                    useStore.getState().setGamePhase('');
 
                 }, 1500);
             }
@@ -391,21 +398,51 @@ export default function Game({mode = "SINGLE", maze = []}){
         return countTotalTreasures(board);
     },[])
 
+
+
+    const  translateCam  = useSpring({
+        // Центрируем камеру относительно ТЕКУЩИХ анимированных координат дроида!
+        // Мы привязываем камеру к droidX.goal / droidY.goal или напрямую к targetX/targetY,
+        // но с более низкой жесткостью (tension), чтобы камера плавно "догоняла" дроида.
+        transform: `translate(${offsetX}px, ${offsetY}px)`,
+        config: {
+            tension: 80,   // Камера двигается плавно и величественно
+            friction: 22   // Без резких колебаний
+        }
+    });
+
+
+
+
     return <div>
-        <svg style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
+        <svg xmlns="http://www.w3.org/2000/svg" style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
             <g>
+
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
+
+
+                {stars.map((el)=> <g transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
+                    <defs>
+                        <filter color-interpolation-filters="sRGB" x="-18" y="-18" width="20" height="20" id="filter_1">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
+                            <feGaussianBlur stdDeviation="5" />
+                        </filter>
+                    </defs>
+                    <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
+                </g>)}
             </g>
             <svg>
-                <g transform={`translate(${offsetX}, ${offsetY}) `} style={{ transition: 'transform 0.4s ease-in-out' }}>
-            {board.map((item, i) => item.map((el)=> {
+                <animated.g style={translateCam}>
+           <g>
+            {board.map((item) => item.map((el)=> {
                 const tileKey = `${el.x}-${el.y}`;
                 const isHighlight =  gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
                 return<g onClick={() => {
                     if (players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
                     if (isHighlight) animateRoute(tileKey);
                 }}  key={`${el.x}-${el.y}`}>
-                    <SpaseBase treasure={el.treasure}  type={el.type} translate={{x: el.x * 100, y: el.y * 100}}
+                    <SpaseBase player={players[activePlayerIndex]}  treasure={el.treasure}  type={el.type} translate={{x: el.x * 100, y: el.y * 100}}
                                 rotation={el.rotation} onClick={handleTileRotate}/>
                     {isHighlight && (
                         <rect
@@ -421,27 +458,52 @@ export default function Game({mode = "SINGLE", maze = []}){
                 </g>
 
             }))}
-            {players.map(player => (
-                <g
-                    key={player.id}
-                    transform={`translate(${player.x * 100}, ${player.y * 100})`}
-                    style={{ transition: 'transform 0.25s ease-in-out' }} // Плавное движение дроида
-                >
-                    <SpaceDroidToken treasure={player.treasure}   name={player.name} color={player.color} />
-                </g>
-            ))}
-            </g>
+            {players.map(player => <DroidSprite key={player.id} x={player.x} y={player.y} type={player.type} treasure={player.treasure}   name={player.name} color={player.color} />)}
+           </g>
+            </animated.g>
             </svg>
             <TopPanel currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={players} />
             <SciFiDice x={size.width / ratio}  isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI} onRollComplete={handleDiceRollComplete}   />
             {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g onClick={() => {
-                if (isMovingAnimation) return;
-                setPathsData({}); // Прячем подсветку дорожек
-                setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
+                setSkipMoveActive(true)
+                setTimeout(()=>{
+                    if (isMovingAnimation) return;
+                    setPathsData({}); // Прячем подсветку дорожек
+                    useStore.getState().setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
+                    setSkipMoveActive(false)
+                },500)
+
             }} cursor={"pointer"}>
-                <rect x={size.width / ratio - 65} y={51} width={60} height={20} fill={"#000"} stroke={"#A0DCE6"} rx={5}
-                      strokeWidth={2}/>
-                <text x={size.width / ratio - 58} y={64} fill={"#e4a7c6"} fontSize={9}>Пропустить ход</text>
+
+    <g transform={`translate(${size.width / ratio - 88} ${40})`} width="90" height="50" >
+        <defs>
+            <filter colorInterpolationFilters="sRGB" x="-58" y="-18" width="60" height="20" id="filter_1">
+                <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
+                <feGaussianBlur stdDeviation="5" />
+            </filter>
+            <filter color-interpolation-filters="sRGB" x="-58" y="-18" width="60" height="20" id="filter_2">
+                <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
+                <feOffset dx="0" dy="4" />
+                <feGaussianBlur stdDeviation="2" />
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
+                <feBlend mode="normal" in2="BackgroundImageFix_1" result="Shadow_2" />
+                <feBlend mode="normal" in="SourceGraphic" in2="Shadow_2" result="Shape_3" />
+            </filter>
+        </defs>
+        <g style={styles.skip_move} opacity={skipMoveActive?0:1} transform={`scale(${skipMoveActive?0.5:1}) translate(${skipMoveActive?40:0} ${skipMoveActive?25:0})`}>
+            <g transform="translate(15 15)">
+                <path d="M10 0L50 0C55.5236 0 60 4.4764 60 10L60 10C60 15.5236 55.5236 20 50 20L10 20C4.4764 20 0 15.5236 0 10L0 10C0 4.4764 4.4764 0 10 0L10 0Z" fill="#0BCDDC" filter="url(#filter_1)" />
+                <path d="M10 0L50 0C55.5236 0 60 4.4764 60 10L60 10C60 15.5236 55.5236 20 50 20L10 20C4.4764 20 0 15.5236 0 10L0 10C0 4.4764 4.4764 0 10 0L10 0Z" fill="#213745" strokeWidth="2" stroke="#0BCDDC" filter="url(#filter_2)" />
+             <text x={8} y={12} fill={"#e4a7c6"} fontSize={9}>Пропустить ход</text>
+            </g>
+        </g>
+    </g>
+
+
+
+
             </g>)}
         </svg>
     </div>
@@ -452,5 +514,8 @@ const styles = {
     main:{
         position: 'fixed',
         zIndex:10
+    },
+    skip_move:{
+        transition: '0.5s',
     }
 }
