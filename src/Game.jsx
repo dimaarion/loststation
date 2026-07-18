@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {checkConnection, countTotalTreasures, findAvailablePaths, getCameraOffset, getRandomInt} from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
 import {DroidSprite} from "./components/Players.jsx";
-import {SciFiDice} from "./components/Objects.jsx";
+import {Planet, SciFiDice} from "./components/Objects.jsx";
 import TopPanel from "./ui/TopPanel.jsx";
 import {useSpring, animated} from '@react-spring/web';
 import useStore from "./store.js";
@@ -406,7 +406,6 @@ export default function Game({mode = "SINGLE", maze = []}){
         // но с более низкой жесткостью (tension), чтобы камера плавно "догоняла" дроида.
         transform: `translate(${offsetX}px, ${offsetY}px)`,
         config: {
-            tension: 80,   // Камера двигается плавно и величественно
             friction: 22   // Без резких колебаний
         }
     });
@@ -419,7 +418,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             <g>
 
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
-
+                <rect width={"100%"} height={"100%"} fill={"red"} />
 
                 {stars.map((el)=> <g transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
                     <defs>
@@ -431,6 +430,8 @@ export default function Game({mode = "SINGLE", maze = []}){
                     </defs>
                     <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
                 </g>)}
+
+               <Planet />
             </g>
             <svg>
                 <animated.g style={translateCam}>

@@ -1049,6 +1049,59 @@ export function RotateIcon() {
     </svg>
 }
 
+export function Planet(){
+    return  <g width="82.287" height="52" fill="none" transform={`translate(50 50) scale(2)`}>
+        <defs>
+            <linearGradient id="gradient_1" gradientUnits="userSpaceOnUse" x1="1.641" y1="22.172" x2="68.21" y2="8.332">
+                <stop offset="0" stopColor="#3C6479" stopOpacity="0.102" />
+                <stop offset="0.5" stopColor="#3C6479" stopOpacity="0.302" />
+                <stop offset="1" stopColor="#3C6479" stopOpacity="0.102" />
+            </linearGradient>
+            <linearGradient id="gradient_2" gradientUnits="userSpaceOnUse" x1="1.764" y1="23.4" x2="72.921" y2="8.662">
+                <stop offset="0" stopColor="#52A1CE" stopOpacity="0.2" />
+                <stop offset="0.5" stopColor="#52A1CE" stopOpacity="0.4" />
+                <stop offset="1" stopColor="#52A1CE" stopOpacity="0.2" />
+            </linearGradient>
+            <linearGradient id="gradient_3" gradientUnits="userSpaceOnUse" x1="2.231" y1="26.157" x2="79.283" y2="10.072">
+                <stop offset="0" stopColor="#3C6479" stopOpacity="0.102" />
+                <stop offset="0.5" stopColor="#3C6479" stopOpacity="0.302" />
+                <stop offset="1" stopColor="#3C6479" stopOpacity="0.102" />
+            </linearGradient>
+            <radialGradient id="gradient_4" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 26 -26 0 97 87)">
+                <stop offset="0" stopColor="#4C2684" />
+                <stop offset="0.6" stopColor="#4C2684" />
+                <stop offset="0.95" stopColor="#397FA1" />
+                <stop offset="1" stopColor="#52A1CE" />
+            </radialGradient>
+            <radialGradient id="gradient_5" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 26 -26 0 26 26)">
+                <stop offset="0.56" stopColor="#AE16CC" />
+                <stop offset="1" stopColor="#368C81" />
+            </radialGradient>
+            <linearGradient id="gradient_6" gradientUnits="userSpaceOnUse" x1="26" y1="0" x2="26" y2="52">
+                <stop offset="0.1" stopColor="#4F71A3" stopOpacity="0.102" />
+                <stop offset="0.2" stopColor="#A9E0A7" stopOpacity="0.149" />
+                <stop offset="0.3" stopColor="#4F71A3" stopOpacity="0.102" />
+                <stop offset="0.4" stopColor="#A9E0A7" stopOpacity="0.2" />
+                <stop offset="0.5" stopColor="#4F71A3" stopOpacity="0.102" />
+                <stop offset="0.6" stopColor="#A9E0A7" stopOpacity="0.149" />
+                <stop offset="0.7" stopColor="#4F71A3" stopOpacity="0.102" />
+                <stop offset="0.8" stopColor="#A9E0A7" stopOpacity="0.102" />
+            </linearGradient>
+        </defs>
+        <g transform="translate(0.145 0)">
+            <path d="M0.152504 24.5694C-1.63427 17.9011 12.4858 8.32377 31.6906 3.17786C50.8954 -1.96805 67.9124 -0.733879 69.6992 5.93445C71.4859 12.6028 57.3658 22.1801 38.1611 27.326C18.9563 32.4719 1.93928 31.2377 0.152504 24.5694Z" fill="url(#gradient_1)" fillRule="evenodd" strokeWidth="0.29" stroke="#52A1CE" strokeDasharray="1 1" transform="translate(5.831 5.248)" />
+            <path d="M0.154274 25.9955C-1.70397 19.0604 13.4393 8.97717 33.9778 3.47392C54.5162 -2.02935 72.6723 -0.868645 74.5306 6.06641C76.3888 13.0015 61.2455 23.0847 40.7071 28.588C20.1686 34.0912 2.01252 32.9305 0.154274 25.9955Z" fill="url(#gradient_2)" fillRule="evenodd" strokeWidth="0.29" stroke="#397FA1" transform="translate(3.415 4.469)" />
+            <path d="M0.188179 28.9848C-1.95595 20.9828 14.4692 9.62908 36.8748 3.62553C59.2803 -2.37803 79.1818 -0.75798 81.3259 7.24401C83.4701 15.246 67.0449 26.5997 44.6394 32.6033C22.2338 38.6069 2.33231 36.9868 0.188179 28.9848Z" fill="url(#gradient_3)" fillRule="evenodd" strokeWidth="0.29" stroke="#52A1CE" strokeDasharray="1 1" transform="translate(0 2.386)" />
+            <path d="M0 26C0 11.6406 11.6406 0 26 0C40.3594 0 52 11.6406 52 26C52 40.3594 40.3594 52 26 52C11.6406 52 0 40.3594 0 26Z" fill="url(#gradient_4)" fillRule="evenodd" transform="translate(5.757 0)" />
+            <path d="M0 26C0 11.6406 11.6406 0 26 0C40.3594 0 52 11.6406 52 26C52 40.3594 40.3594 52 26 52C11.6406 52 0 40.3594 0 26Z" fill="url(#gradient_5)" fillRule="evenodd" fillOpacity="0.2" transform="translate(5.757 0)" />
+            <path d="M0 26C0 11.6406 11.6406 0 26 0C40.3594 0 52 11.6406 52 26C52 40.3594 40.3594 52 26 52C11.6406 52 0 40.3594 0 26Z" fill="url(#gradient_6)" fillRule="evenodd" transform="translate(5.757 0)" />
+            <path d="M33.5 1C33.5 1 37 3.5 30 9.5C23 15.5 4 24 4 24C4 24 0 25 0 25C0 25 17.5 16.5 25 9.5C32.5 2.5 29.5 0 29.5 0C29.5 0 33.5 1 33.5 1Z" fill="#397FA1" transform="translate(42.757 11.5)" />
+            <path d="M39 0C39 0 44 3.5 35 9.5C26 15.5 4 26 4 26C4 26 0 28 0 28C0 28 20.5 17.5 30 10C39.5 2.5 36.5 0 36.5 0C36.5 0 39 0 39 0Z" fill="#52A1CE" transform="translate(41.757 11.5)" />
+        </g>
+    </g>
+}
+
+
 const styles = {
     main: {
         cursor: "pointer",
