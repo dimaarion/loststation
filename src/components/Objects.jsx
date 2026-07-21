@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import {splitArray} from "../action.js";
 
 export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
     const [isRolling, setIsRolling] = useState(false);
@@ -1100,6 +1101,80 @@ export function Planet(){
         </g>
     </g>
 }
+
+export const DroidInput = ({ value = "Droid-01", onChange }) => (
+    <svg
+        width="220"
+        height="70"
+        viewBox="0 0 550 70"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        {/* Рамка поля */}
+        <path d="M0 0L506.372 0L506.372 49.8463L475.888 79.5685L0 79.0473L0 0Z" fill="#FFFFFF" fillRule="evenodd" fillOpacity="0.153" strokeWidth="4" stroke="#6CD9DF" strokeLinejoin="bevel" transform="translate(2 2)" />
+
+        {/* Настоящее поле ввода */}
+        <foreignObject x="20" y="20" width="450" height="40">
+            <input
+                xmlns="http://www.w3.org/1999/xhtml"
+                type="text"
+                value={value}
+                onChange={onChange}
+                style={{
+                    width: "100%",
+                    height: "100%",
+                    background: "transparent",
+                    border: "none",
+                    color: "white",
+                    fontFamily: "monospace",
+                    fontSize: "40pt",
+                    outline: "none"
+                }}
+            />
+        </foreignObject>
+    </svg>
+);
+
+export const SvgColorPicker = ({color="#00ffff", colors = ["#00ffff", "#ff0000", "#00ff00", "#ffff00", "#ff9900", "#9900ff"], onChange, step = 4 }) => {
+    const [selected, setSelected] = useState(color);
+    const colGen = splitArray(colors, colors.length / step);
+
+    function hexagonPath(cx, cy, r){
+        const points = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 6;
+            points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+        }
+        return points.join(" ");
+    };
+
+    return (
+        <svg width="300" height={colGen.length * 60} xmlns="http://www.w3.org/2000/svg">
+            {colGen.map((item, j)=>item.map((color, i) => {
+                const x = 50 + i * 40;
+                const y = 60 + j * 40;
+                const r = 18;
+                return (
+                    <polygon
+                        key={i + "color"}
+                        points={hexagonPath(x, y, r)}
+                        fill={color}
+                        stroke={selected === color ? "#fff" : "#444"}
+                        strokeWidth={selected === color ? 3 : 2}
+                        onClick={() => {
+                            setSelected(color);
+                            if (onChange) onChange(color);
+                        }}
+
+                    />
+                );
+            }))}
+        </svg>
+    );
+};
+
+
+
+
 
 
 const styles = {

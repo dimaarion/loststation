@@ -10,8 +10,7 @@ export default function SpaceTileCorner ({ angle = 0, translate = {x:0,y:0}, tre
     const { rotation } = useSpring({
         rotation: angle, // Сюда передаем 0, 90, 180 или 270 градусов из стейта
         config: {
-            tension: 180, // Жесткость пружины
-            friction: 22  // Сопротивление (чем меньше, тем сильнее «пружинит» в конце)
+            duration:500,
         }
     });
 

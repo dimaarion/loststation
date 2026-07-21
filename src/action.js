@@ -1,6 +1,6 @@
 export const TILE_TYPES = ['straight', 'corner', 't_shape'];
 
-export const DROID_TYPE = ["base","II-88"]
+export const DROID_TYPE = ["base","II-88","CRAB-M","II-88","II-88","II-88"]
 
 export function routable(n) {
     return Math.PI / 180 * n;
@@ -276,5 +276,22 @@ export const checkConnection = (tileA, tileB) => {
     return canMoveBetween(tileA, tileB, dir);
 };
 
+export function splitArray(arr, parts) {
+    const result = []
+    const size = Math.ceil(arr.length / parts)
+
+    for (let i = 0; i < arr.length; i += size) {
+        result.push(arr.slice(i, i + size))
+    }
+
+    return result
+}
 
 
+export const generateColor = () => {
+    const colors = [];
+    for (let h = 0; h < 360; h += 30) { // 12 шагов по оттенку
+        colors.push(`hsl(${h}, 80%, 50%)`);
+    }
+    return colors;
+};

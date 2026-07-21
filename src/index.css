@@ -1,3 +1,7 @@
+*{
+    cursor:url("./assets/cursor-svg.svg"), pointer;
+}
+
 body{
     margin:0;
     padding:0;
@@ -9,4 +13,9 @@ body{
 
 img.no-search {
     pointer-events: none;
+}
+
+.box:hover{
+    fill: #433A78;
+    stroke: #A49DD4;
 }

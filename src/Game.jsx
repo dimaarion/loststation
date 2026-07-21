@@ -6,6 +6,10 @@ import {Planet, SciFiDice} from "./components/Objects.jsx";
 import TopPanel from "./ui/TopPanel.jsx";
 import {useSpring, animated} from '@react-spring/web';
 import useStore from "./store.js";
+import StartMenu from "./ui/StartMenu.jsx";
+import GameOne from "./ui/GameOne.jsx";
+import Btn from "./ui/Btn.jsx";
+import DroneParams from "./ui/DroneParams.jsx";
 const MODES = {
     SINGLE: 'SINGLE',
     SPLIT: 'SPLIT',
@@ -26,7 +30,7 @@ export default function Game({mode = "SINGLE", maze = []}){
     const [skipMoveActive, setSkipMoveActive] = useState(false);
     const gamePhase = useStore((state) => state.gamePhase);
     const stars = useStore((state) => state.stars);
-
+    const page = useStore((state) => state.page);
 
 
 
@@ -118,7 +122,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 useStore.getState().setGamePhase('ROTATE'); // Переходим к вращению плиток
             }
 
-        }, 500); // Скорость шага дроида
+        }, 1000); // Скорость шага дроида
     }, [activePlayerIndex, isMovingAnimation, pathsData]);
 
     const handleTileRotate = useCallback((targetX, targetY) => {
@@ -386,7 +390,17 @@ export default function Game({mode = "SINGLE", maze = []}){
         window.addEventListener('resize', ()=>{
             setSize({width: window.innerWidth, height: window.innerHeight});
             setRatio((window.innerWidth + window.innerHeight) / rt);
+            useStore.getState().setStars(new Array(window.innerWidth).fill(true).map(()=>{
+                return  {
+                    position:{
+                        x: getRandomInt(0, window.innerWidth), y: getRandomInt(0, window.innerHeight)
+                    },
+                    width:getRandomInt(0, 50),
+                    height:getRandomInt(0, 50),
+                    scale:getRandomInt(0, 100),
+                };
 
+            }))
         });
     }, []);
 
@@ -418,11 +432,9 @@ export default function Game({mode = "SINGLE", maze = []}){
             <g>
 
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
-                <rect width={"100%"} height={"100%"} fill={"red"} />
-
-                {stars.map((el)=> <g transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
+                {stars.map((el,i)=> <g key={i + "star"} transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
                     <defs>
-                        <filter color-interpolation-filters="sRGB" x="-18" y="-18" width="20" height="20" id="filter_1">
+                        <filter colorInterpolationFilters="sRGB" x="-18" y="-18" width="20" height="20" id="filter_1">
                             <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
                             <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
                             <feGaussianBlur stdDeviation="5" />
@@ -430,42 +442,50 @@ export default function Game({mode = "SINGLE", maze = []}){
                     </defs>
                     <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
                 </g>)}
-
-               <Planet />
+                <Planet />
+                {page === "game_play"?<animated.g style={translateCam}>
+                    <rect x={-10} y={-10} width={board.length * 100 + 10} height={board.length * 100 + 10}
+                          fill={"#373A40"}/>
+                </animated.g>:""}
             </g>
-            <svg>
+            {page === "game_play"? <svg>
                 <animated.g style={translateCam}>
-           <g>
-            {board.map((item) => item.map((el)=> {
-                const tileKey = `${el.x}-${el.y}`;
-                const isHighlight =  gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
-                return<g onClick={() => {
-                    if (players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
-                    if (isHighlight) animateRoute(tileKey);
-                }}  key={`${el.x}-${el.y}`}>
-                    <SpaseBase player={players[activePlayerIndex]}  treasure={el.treasure}  type={el.type} translate={{x: el.x * 100, y: el.y * 100}}
-                                rotation={el.rotation} onClick={handleTileRotate}/>
-                    {isHighlight && (
-                        <rect
-                            x={el.x * 100}
-                            y={el.y * 100}
-                            width="100" height="100"
-                            fill="#00F0FF" opacity="0.15"
-                            stroke="#00F0FF" strokeWidth="3"
-                            style={{ pointerEvents: 'none' }}
-                        />
-                    )}
+                    <g>
+                        {board.map((item) => item.map((el) => {
+                            const tileKey = `${el.x}-${el.y}`;
+                            const isHighlight = gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
+                            return <g onClick={() => {
+                                if (players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
+                                if (isHighlight) animateRoute(tileKey);
+                            }} key={`${el.x}-${el.y}`}>
+                                <SpaseBase player={players[activePlayerIndex]} treasure={el.treasure} type={el.type}
+                                           translate={{x: el.x * 100, y: el.y * 100}}
+                                           rotation={el.rotation} onClick={handleTileRotate}/>
+                                {isHighlight && (
+                                    <rect
+                                        x={el.x * 100}
+                                        y={el.y * 100}
+                                        width="100" height="100"
+                                        fill="#00F0FF" opacity="0.15"
+                                        stroke="#00F0FF" strokeWidth="3"
+                                        style={{pointerEvents: 'none'}}
+                                    />
+                                )}
 
-                </g>
+                            </g>
 
-            }))}
-            {players.map(player => <DroidSprite key={player.id} x={player.x} y={player.y} type={player.type} treasure={player.treasure}   name={player.name} color={player.color} />)}
-           </g>
-            </animated.g>
-            </svg>
+                        }))}
+                        {players.map(player => <DroidSprite key={player.id} x={player.x} y={player.y} type={player.type}
+                                                            treasure={player.treasure} name={player.name}
+                                                            color={player.color}/>)}
+                    </g>
+                </animated.g>
+            </svg>:""}
             <TopPanel currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={players} />
-            <SciFiDice x={size.width / ratio}  isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI} onRollComplete={handleDiceRollComplete}   />
-            {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g onClick={() => {
+            {page === "game_play"?<SciFiDice x={size.width / ratio - 10}
+                        isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI}
+                        onRollComplete={handleDiceRollComplete}/>:""}
+            {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g transform={`translate(${size.width / ratio - 80} 30)`} onClick={() => {
                 setSkipMoveActive(true)
                 setTimeout(()=>{
                     if (isMovingAnimation) return;
@@ -473,39 +493,14 @@ export default function Game({mode = "SINGLE", maze = []}){
                     useStore.getState().setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
                     setSkipMoveActive(false)
                 },500)
-
             }} cursor={"pointer"}>
-
-    <g transform={`translate(${size.width / ratio - 88} ${40})`} width="90" height="50" >
-        <defs>
-            <filter colorInterpolationFilters="sRGB" x="-58" y="-18" width="60" height="20" id="filter_1">
-                <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
-                <feGaussianBlur stdDeviation="5" />
-            </filter>
-            <filter color-interpolation-filters="sRGB" x="-58" y="-18" width="60" height="20" id="filter_2">
-                <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
-                <feOffset dx="0" dy="4" />
-                <feGaussianBlur stdDeviation="2" />
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
-                <feBlend mode="normal" in2="BackgroundImageFix_1" result="Shadow_2" />
-                <feBlend mode="normal" in="SourceGraphic" in2="Shadow_2" result="Shape_3" />
-            </filter>
-        </defs>
-        <g style={styles.skip_move} opacity={skipMoveActive?0:1} transform={`scale(${skipMoveActive?0.5:1}) translate(${skipMoveActive?40:0} ${skipMoveActive?25:0})`}>
-            <g transform="translate(15 15)">
-                <path d="M10 0L50 0C55.5236 0 60 4.4764 60 10L60 10C60 15.5236 55.5236 20 50 20L10 20C4.4764 20 0 15.5236 0 10L0 10C0 4.4764 4.4764 0 10 0L10 0Z" fill="#0BCDDC" filter="url(#filter_1)" />
-                <path d="M10 0L50 0C55.5236 0 60 4.4764 60 10L60 10C60 15.5236 55.5236 20 50 20L10 20C4.4764 20 0 15.5236 0 10L0 10C0 4.4764 4.4764 0 10 0L10 0Z" fill="#213745" strokeWidth="2" stroke="#0BCDDC" filter="url(#filter_2)" />
-             <text x={8} y={12} fill={"#e4a7c6"} fontSize={9}>Пропустить ход</text>
-            </g>
-        </g>
-    </g>
-
-
-
-
+                <Btn scale={0.2} y={0} tx={20} ty={155} x={0} text={"Пропустить ход"} fontSize={60}/>
             </g>)}
+            {page === "start_menu"?<g transform={`translate(-150 0)`}>
+                <StartMenu/>
+            </g>:""}
+            {page === "game_one"?<GameOne height={size.height} width={size.width} ratio={ratio} />:""}
+            {page === "drone_settings"?<DroneParams height={size.height} width={size.width} ratio={ratio} />:""}
         </svg>
     </div>
 
