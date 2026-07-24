@@ -27,6 +27,16 @@ const useStore = create((set) => ({
         station:10,
         level:1
     },
+    size:{width: window.innerWidth, height: window.innerHeight},
+    ratio:(window.innerWidth + window.innerHeight) / 1000,
+    game:{
+        base:5,
+        level:1,
+        players:[]
+    },
+    setGame: (el) => set(() => ({ game: el})),
+    setRatio: (el) => set(() => ({ ratio: el})),
+    setSize: (el) => set(() => ({ size: el})),
     setGamePhase: (el) => set(() => ({ gamePhase: el})),
     setPage: (el) => set(() => ({ page: el})),
     setStars: (el) => set(() => ({ stars: el})),

@@ -2,15 +2,17 @@ import Btn from "./Btn.jsx";
 import {useState} from "react";
 import {SpaceDroidToken} from "../components/Players.jsx";
 import useStore from "../store.js";
+import BattleBotsSettings from "./BattleBotsSettings.jsx";
 
 
 export default function GameOne({width, height, ratio}){
     const [step, setStep] = useState(0)
     const [fight, setFight] = useState(false)
     const [passing, setPassing] = useState(false)
+    const [battleSettings, setBattleSettings] = useState(false)
     const droidType = useStore((state) => state.droidType);
     const type = useStore((state) => state.type);
-    const gameOneFight = useStore((state) => state.gameOneFight);
+    const game = useStore((state) => state.game);
 
     return <g>
         <defs>
@@ -41,10 +43,10 @@ export default function GameOne({width, height, ratio}){
             <g transform={`scale(${height > 660 && width < 500?0.3:0.4})`}>
                 <path  d="M20.0273 0L394.861 0L417.579 21.4552L417.579 95.9172L410.832 100.009L410.832 168.269L417.579 173.819L417.579 241.269L399.442 260.454L20.0273 260.62L0 241.269L0 173.973L4.99805 168.269L4.99805 100.24L0 95.8084L0 21.6221L20.0273 0Z" fill="none" strokeWidth="5" stroke="url(#gradient_game_one_box)" transform="translate(2.5 2.5)" />
                 <text  x={20} y={50} fill={"#A7EAF2"} fontSize={50}>СХВАТКА: БОТЫ</text>
-                <text  x={20} y={100} fill={"#A7EAF2"} fontSize={30}>БОТЫ: {gameOneFight.bot}</text>
-                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {gameOneFight.station} x {gameOneFight.station}</text>
-                <text  x={20} y={160} fill={"#A7EAF2"} fontSize={30}>УРОВЕНЬ: {gameOneFight.level}</text>
-                <g>
+                <text  x={20} y={100} fill={"#A7EAF2"} fontSize={30}>БОТЫ: {game.players.length - 1}</text>
+                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {game.base} x {game.base}</text>
+                <text  x={20} y={160} fill={"#A7EAF2"} fontSize={30}>УРОВЕНЬ: {game.level}</text>
+                <g onPointerDown={()=>setBattleSettings(true)}>
                     <Btn x={150} y={170} scale={0.35} text={"Настройки"} tx={35} fontSize={80}/>
                 </g>
             </g>
@@ -55,9 +57,9 @@ export default function GameOne({width, height, ratio}){
             <g transform={`scale(${height > 660 && width < 500?0.3:0.4})`}>
                 <path  d="M20.0273 0L394.861 0L417.579 21.4552L417.579 95.9172L410.832 100.009L410.832 168.269L417.579 173.819L417.579 241.269L399.442 260.454L20.0273 260.62L0 241.269L0 173.973L4.99805 168.269L4.99805 100.24L0 95.8084L0 21.6221L20.0273 0Z" fill="none" strokeWidth="5" stroke="url(#gradient_game_one_box)" transform="translate(2.5 2.5)" />
                 <text  x={20} y={50} fill={"#A7EAF2"} fontSize={50}>ПРОХОЖДЕНИЕ</text>
-                <text  x={20} y={100} fill={"#A7EAF2"} fontSize={30}>БОТЫ: {gameOneFight.bot}</text>
-                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {gameOneFight.station} x {gameOneFight.station}</text>
-                <text  x={20} y={160} fill={"#A7EAF2"} fontSize={30}>УРОВЕНЬ: {gameOneFight.level}</text>
+                <text  x={20} y={100} fill={"#A7EAF2"} fontSize={30}>БОТЫ: {game.players.length - 1}</text>
+                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {game.base} x {game.base}</text>
+                <text  x={20} y={160} fill={"#A7EAF2"} fontSize={30}>УРОВЕНЬ: {game.level}</text>
             </g>
         </svg>
         <svg onPointerDown={()=>{
@@ -105,6 +107,9 @@ export default function GameOne({width, height, ratio}){
         }} transform={`translate(${(width / ratio) / 2} ${width < 1024?180:100})`}>
             <Btn x={25} y={0} scale={0.15} text={"Изменить"} ty={158} tx={50} fontSize={80}/>
         </g>
+        {battleSettings?<g>
+            <BattleBotsSettings setDown={setBattleSettings} />
+        </g>:""}
     </g>
 }
 

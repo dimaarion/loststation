@@ -295,3 +295,4 @@ export const generateColor = () => {
     }
     return colors;
 };
+

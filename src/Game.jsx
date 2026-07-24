@@ -20,10 +20,7 @@ const MODES = {
 
 export default function Game({mode = "SINGLE", maze = []}){
     const [pathsData, setPathsData] = useState({});
-    const [size, setSize] = useState({width: window.innerWidth, height: window.innerHeight});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
-    const [rt, setRt] = useState(1000);
-    const [ratio, setRatio] = useState((window.innerWidth + window.innerHeight) / rt);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
@@ -31,6 +28,10 @@ export default function Game({mode = "SINGLE", maze = []}){
     const gamePhase = useStore((state) => state.gamePhase);
     const stars = useStore((state) => state.stars);
     const page = useStore((state) => state.page);
+    const size = useStore((state) => state.size);
+    const setSize = useStore((state) => state.setSize);
+    const ratio = useStore((state) => state.ratio);
+    const setRatio = useStore((state) => state.setRatio);
 
 
 
@@ -389,7 +390,7 @@ export default function Game({mode = "SINGLE", maze = []}){
     useEffect(() => {
         window.addEventListener('resize', ()=>{
             setSize({width: window.innerWidth, height: window.innerHeight});
-            setRatio((window.innerWidth + window.innerHeight) / rt);
+            setRatio((window.innerWidth + window.innerHeight) / 1000);
             useStore.getState().setStars(new Array(window.innerWidth).fill(true).map(()=>{
                 return  {
                     position:{

@@ -75,6 +75,16 @@ function App() {
         })();
     }, []);
 
+   /* useEffect(()=>{
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        });
+        document.querySelectorAll('img').forEach(img => {
+            img.addEventListener('contextmenu', function(e) {
+                e.preventDefault(); // Блокирует меню
+            }, false);
+        });
+    },[])*/
 
     return maze?<Game maze={maze}/>:""
 

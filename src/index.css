@@ -11,6 +11,15 @@ body{
     font-style: normal;
 }
 
+
+svg{
+
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
 img.no-search {
     pointer-events: none;
 }
