@@ -4,6 +4,7 @@ import Game from "./Game.jsx";
 import {useEffect, useState} from "react";
 import {Ysdk} from "./Ysdk.js";
 import Database from "./Database.js";
+import useStore from "./store.js";
 
 
 
@@ -14,9 +15,8 @@ function App() {
     const [settings, setSettings] = useState(null);
     const [progress, setProgress] = useState(null);
     const [lang, setLang] = useState('ru');
-    const [maze, setMaze] = useState(null);
     const [error, setError] = useState(null);
-
+     const maze = useStore((state) => state.maze);
     useEffect(() => {
         (async () => {
             try {
@@ -59,14 +59,14 @@ function App() {
                 // Генерация лабиринта
                 const level = progress.level ?? 25;
                 const gridSize = localSettings.gridSize ?? 25;
-                const maze = generateMaze(gridSize, level);
+
 
                 // Сохраняем состояние
                 setYsdkInstance(ysdkInstance); // Будет null на локалке
                 setLang(lang);
                 setSettings(localSettings);
                 setProgress(progress);
-                setMaze(maze);
+
 
             } catch (err) {
                 console.error('Критическая ошибка инициализации:', err);

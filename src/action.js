@@ -82,7 +82,7 @@ export const generateMaze = (gridSize, level) => {
             // 2. Случайный начальный поворот (0, 90, 180, 270 градусов)
             const rotations = [0, 90, 180, 270];
             const rotation = rotations[Math.floor(Math.random() * rotations.length)];
-
+            const playerId = -1
             // 3. Проверяем, должно ли на этой плитке лежать сокровище
             const treasureFound = treasuresList.find(t => t.x === x && t.y === y);
             const treasure = treasureFound ? treasureFound.type : null;
@@ -95,6 +95,7 @@ export const generateMaze = (gridSize, level) => {
                 type,
                 rotation,
                 treasure,
+                playerId,
                 isExplored: false // Для механики тумана войны
             });
         }
@@ -295,4 +296,9 @@ export const generateColor = () => {
     }
     return colors;
 };
+
+
+export function treasurePlayerCount(board, idx){
+    return board.map((el)=>el.filter((p)=> p.playerId === idx)).filter((f)=>f.length > 0).length
+}
 

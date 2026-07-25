@@ -1,5 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
-import {checkConnection, countTotalTreasures, findAvailablePaths, getCameraOffset, getRandomInt} from "./action.js";
+import {
+    checkConnection,
+    countTotalTreasures,
+    findAvailablePaths,
+    getCameraOffset,
+    getRandomInt, treasurePlayerCount
+} from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
 import {DroidSprite} from "./components/Players.jsx";
 import {Planet, SciFiDice} from "./components/Objects.jsx";
@@ -10,6 +16,7 @@ import StartMenu from "./ui/StartMenu.jsx";
 import GameOne from "./ui/GameOne.jsx";
 import Btn from "./ui/Btn.jsx";
 import DroneParams from "./ui/DroneParams.jsx";
+import {pointInRect} from "./сollisions.js";
 const MODES = {
     SINGLE: 'SINGLE',
     SPLIT: 'SPLIT',
@@ -24,6 +31,7 @@ export default function Game({mode = "SINGLE", maze = []}){
     const [availableMoves, setAvailableMoves] = useState([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
+    const [droidCube, setDroidCube] = useState(0);
     const [skipMoveActive, setSkipMoveActive] = useState(false);
     const gamePhase = useStore((state) => state.gamePhase);
     const stars = useStore((state) => state.stars);
@@ -32,32 +40,31 @@ export default function Game({mode = "SINGLE", maze = []}){
     const setSize = useStore((state) => state.setSize);
     const ratio = useStore((state) => state.ratio);
     const setRatio = useStore((state) => state.setRatio);
+    const game = useStore((state) => state.game);
+    const setGame = useStore((state) => state.setGame);
+    const pause = useStore((state) => state.pause);
 
 
-
-    const [players, setPlayers] = useState([
-        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
-        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0,treasure:0, type:"II-88", isAI: false }, // Бот
-    ]);
-
-
+    useEffect(()=>{
+        (()=>setBoard(maze))()
+    },[maze])
 
 
     const { offsetX, offsetY } = getCameraOffset(
-        players[activePlayerIndex].x,
-        players[activePlayerIndex].y,
+        game.players[activePlayerIndex].x,
+        game.players[activePlayerIndex].y,
         size.width / ratio,
         size.height / ratio,
     );
 
     const handleDiceRollComplete = useCallback((result) => {
-        const player = players[activePlayerIndex];
+        const player = game.players[activePlayerIndex];
         // Находим все пути вдоль стен
         const paths = findAvailablePaths(player.x, player.y, result, board);
         setPathsData(paths);
         useStore.getState().setGamePhase('MOVE');
        return null
-    },[players, activePlayerIndex, board]);
+    },[game.players, activePlayerIndex, board]);
 
     const animateRoute = useCallback((targetKey) => {
         if (isMovingAnimation) return;
@@ -89,30 +96,27 @@ export default function Game({mode = "SINGLE", maze = []}){
             const [nextX, nextY] = route[currentStep];
 
             // Сдвигаем игрока на одну плитку вперёд по маршруту
-            setPlayers(prev => prev.map((p, idx) =>
-                idx === activePlayerIndex ? { ...p, x: nextX, y: nextY, stepsLeft: Math.max(0, p.stepsLeft - 1) } : p
-            ));
+            setGame({...game,
+               players: game.players.map((p, idx) => {
+                 return   idx === activePlayerIndex ? {...p, x: nextX, y: nextY, stepsLeft: Math.max(0, p.stepsLeft - 1)} : p
+               })
+            });
 
             // Проверяем и собираем сокровище на текущей промежуточной плитке
             setBoard(prevBoard =>
                 prevBoard.map(row =>
                     row.map(tile => {
                         if( tile.x === nextX && tile.y === nextY && tile.treasure){
-                            tile = {...tile, treasure: null}
-                            setPlayers((prev)=>prev.map((el,ind)=>{
-                                if(ind === activePlayerIndex){
-                                    el.treasure += 1
-                                }
-                                return el
-                            }))
+                            tile = {...tile, treasure: null, playerId:activePlayerIndex};
                         }
-
                         return tile
                         }
                     )
                 )
             );
 
+
+          
             currentStep++;
 
             // Если прошли весь маршрут до конца
@@ -124,7 +128,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             }
 
         }, 1000); // Скорость шага дроида
-    }, [activePlayerIndex, isMovingAnimation, pathsData]);
+    }, [isMovingAnimation, pathsData, setGame, game, activePlayerIndex]);
 
     const handleTileRotate = useCallback((targetX, targetY) => {
 
@@ -132,7 +136,7 @@ export default function Game({mode = "SINGLE", maze = []}){
         if (gamePhase !== 'ROTATE' || isMovingAnimation) return;
 
 
-        const currentPlayer = players[activePlayerIndex];
+        const currentPlayer = game.players[activePlayerIndex];
 
         // 2. Расчет дистанции: проверяем, что плитка находится в радиусе 1 шага
         // (0 — плитка под игроком, 1 — соседние плитки крестом. Диагонали выдадут 2, они отсекаются)
@@ -154,29 +158,28 @@ export default function Game({mode = "SINGLE", maze = []}){
             // 4. ПЕРЕКЛЮЧЕНИЕ ХОДА НА СЛЕДУЮЩЕГО ИГРОКА
             setTimeout(()=>{
                 setAvailableMoves([]); // На всякий случай очищаем подсветку
-                setPlayers(prev => {
-                    // Переключаем индекс активного игрока по кругу
-                    const nextPlayerIndex = (activePlayerIndex + 1) % prev.length;
-                    setActivePlayerIndex(nextPlayerIndex);
-
-                    // Сбрасываем шаги у того игрока, который только что сходил
-                    return prev.map((p, idx) =>
-                        idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p
-                    );
-                });
+                setGame({...game,
+                    players: game.players.map((p, idx) =>{
+                        // Переключаем индекс активного игрока по кругу
+                        const nextPlayerIndex = (activePlayerIndex + 1) % game.players.length;
+                        setActivePlayerIndex(nextPlayerIndex);
+                        return  idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p
+                    })
+                })
+                
 
                 // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
                 useStore.getState().setGamePhase('ROLL');
             },1000)
 
         }
-    },[activePlayerIndex, gamePhase, isMovingAnimation, players]);
+    },[gamePhase, isMovingAnimation, game, activePlayerIndex, setGame]);
 
 
 
     useEffect(() => {
         if (mode !== MODES.SINGLE) return;
-        const currentPlayer = players[activePlayerIndex];
+        const currentPlayer = game.players[activePlayerIndex];
         if (currentPlayer && currentPlayer.isAI && !isMovingAnimation) {
 
             // ==========================================
@@ -185,6 +188,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             if (gamePhase === 'ROLL') {
                 setTimeout(() => {
                     const rolledNumber = Math.floor(Math.random() * 6) + 1;
+                    setDroidCube(rolledNumber);
                     handleDiceRollComplete(rolledNumber);
                 }, 1200);
             }
@@ -346,7 +350,7 @@ export default function Game({mode = "SINGLE", maze = []}){
 
                     // 3. ЭВРИСТИКА-ВРЕДИТЕЛЬ (если себе открыть путь не получается, мешаем человеку)
                     if (!bestTileToRotate) {
-                        const humanPlayer = players.find(p => !p.isAI);
+                        const humanPlayer = game.players.find(p => !p.isAI);
                         if (humanPlayer) {
                             const humanTile = board[humanPlayer.y]?.[humanPlayer.x];
 
@@ -384,7 +388,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 }, 1500);
             }
         }
-    }, [gamePhase, activePlayerIndex, players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
+    }, [gamePhase, activePlayerIndex, game.players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
 
 
     useEffect(() => {
@@ -410,8 +414,10 @@ export default function Game({mode = "SINGLE", maze = []}){
     },[board])
 
     const countTotal = useMemo(()=>{
-        return countTotalTreasures(board);
-    },[])
+        return countTotalTreasures(maze);
+    },[maze])
+    
+
 
 
 
@@ -424,6 +430,13 @@ export default function Game({mode = "SINGLE", maze = []}){
             friction: 22   // Без резких колебаний
         }
     });
+
+    const [rotateBtnBot] = useSpring(()=>({
+        from: {transform:'rotate(0deg) translate(-50px, -50px)'},
+        to: {transform:'rotate(360deg) translate(-50px, -50px)'},
+        reset:true,
+        config: {duration:500}
+    }),[droidCube])
 
 
 
@@ -440,6 +453,54 @@ export default function Game({mode = "SINGLE", maze = []}){
                             <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
                             <feGaussianBlur stdDeviation="5" />
                         </filter>
+                        <filter colorInterpolationFilters="sRGB" x="-50" y="-50" width="100" height="100" id="filter_active_player_1">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
+                            <feGaussianBlur stdDeviation="5" />
+                        </filter>
+                        <linearGradient id="gradient_btn_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
+                            <stop offset="0" stopColor="#2D5E6B"/>
+                            <stop offset="0.49" stopColor="#29A1AB"/>
+                            <stop offset="1" stopColor="#2D5E6B"/>
+                        </linearGradient>
+                        <radialGradient id="gradient_btn_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
+                                        gradientTransform="matrix(0 48.763 -168.834 0 168.834 48.763)">
+                            <stop offset="0" stopColor="#871E1E"/>
+                            <stop offset="1" stopColor="#24C2C9"/>
+                        </radialGradient>
+                        <filter colorInterpolationFilters="sRGB" x="-155" y="-85" width="157" height="87" id="filter_btn_3">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix_btn_1"/>
+                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha"/>
+                            <feOffset dx="0" dy="4"/>
+                            <feGaussianBlur stdDeviation="2"/>
+                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0"/>
+                            <feBlend mode="normal" in2="BackgroundImageFix_btn_1" result="Shadow_btn_2"/>
+                            <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_2" result="Shape_btn_3"/>
+                        </filter>
+                        <filter id="blurFilter_btn">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+                        </filter>
+
+
+                        <linearGradient id="gradient_btn_hover_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
+                            <stop offset="0" stopColor="#4C495C" />
+                            <stop offset="0.49" stopColor="#391FC4" />
+                            <stop offset="1" stopColor="#4C495C" />
+                        </linearGradient>
+                        <radialGradient id="gradient_btn_hover_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 29.1 -100.755 0 100.755 29.1)">
+                            <stop offset="0" stopColor="#871E1E" />
+                            <stop offset="1" stopColor="#B9B1E0" />
+                        </radialGradient>
+
+                        <filter colorInterpolationFilters="sRGB" x="-182.065" y="-35.059" width="184.065" height="37.059" id="filter_btn_hover_3">
+                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
+                            <feOffset dx="0" dy="4" />
+                            <feGaussianBlur stdDeviation="2" />
+                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
+                            <feBlend mode="normal" in2="BackgroundImageFix_btn_hover_1" result="Shadow_btn_hover_2" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_hover_btn_hover_2" result="Shape_btn_hover_3" />
+                        </filter>
                     </defs>
                     <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
                 </g>)}
@@ -452,14 +513,19 @@ export default function Game({mode = "SINGLE", maze = []}){
             {page === "game_play"? <svg>
                 <animated.g style={translateCam}>
                     <g>
-                        {board.map((item) => item.map((el) => {
+                        {board.map((item) => item.filter((f)=>pointInRect({x:f.x * 100,y:f.y * 100},{
+                            x: (game.players[activePlayerIndex].x * 100) - size.width / 2,
+                            y:(game.players[activePlayerIndex].y * 100) - size.height / 2,
+                            width:size.width,
+                            height:size.height,
+                        })).map((el) => {
                             const tileKey = `${el.x}-${el.y}`;
                             const isHighlight = gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
                             return <g onClick={() => {
-                                if (players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
+                                if (game.players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
                                 if (isHighlight) animateRoute(tileKey);
                             }} key={`${el.x}-${el.y}`}>
-                                <SpaseBase player={players[activePlayerIndex]} treasure={el.treasure} type={el.type}
+                                <SpaseBase player={game.players[activePlayerIndex]} treasure={el.treasure} type={el.type}
                                            translate={{x: el.x * 100, y: el.y * 100}}
                                            rotation={el.rotation} onClick={handleTileRotate}/>
                                 {isHighlight && (
@@ -476,17 +542,51 @@ export default function Game({mode = "SINGLE", maze = []}){
                             </g>
 
                         }))}
-                        {players.map(player => <DroidSprite key={player.id} x={player.x} y={player.y} type={player.type}
-                                                            treasure={player.treasure} name={player.name}
-                                                            color={player.color}/>)}
+                        {game.players.map((player,idx) =><g>
+                            <DroidSprite key={player.id}
+                                         x={player.x}
+                                         y={player.y}
+                                         type={player.type}
+                                         treasure={treasurePlayerCount(board, idx)}
+                                         name={player.name}
+                                         color={player.color}
+                                         skipMoveActive={activePlayerIndex === idx}
+                            />
+
+
+
+                                    </g>)}
                     </g>
                 </animated.g>
+
             </svg>:""}
-            <TopPanel currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={players} />
-            {page === "game_play"?<SciFiDice x={size.width / ratio - 10}
-                        isRollAvailable={gamePhase === 'ROLL' && !players[activePlayerIndex].isAI}
+            {page === "game_play"?<TopPanel droidCube={droidCube} currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={game.players}/>:""}
+            {page === "game_play" && !pause?game.players[activePlayerIndex].isAI?<svg x={size.width / ratio - 70} width={50} height={50} viewBox={"0 0 100 100"}>
+                <g transform={'translate(50 50)'}>
+                    <animated.g style={rotateBtnBot}>
+                        <polygon
+                            points="50,15 85,32 85,68 50,85 15,68 15,32"
+                            fill="#1F242D"
+                            stroke={"#00F0FF"}
+                            strokeWidth="3"
+                            filter={"url(#neon-glow)"}
+                        />
+                    </animated.g>
+
+                    <text x={0} y={0}  textAnchor="middle"
+                           dominantBaseline="middle"
+                           fill={"#00F0FF"}
+                           fontSize="26"
+                           fontWeight="bold"
+                           fontFamily="monospace"
+                           style={{ letterSpacing: '1px' }}>{droidCube}</text>
+                </g>
+
+
+            </svg>:<SciFiDice x={size.width / ratio - 70}
+                        isRollAvailable={gamePhase === 'ROLL' && !game.players[activePlayerIndex].isAI}
                         onRollComplete={handleDiceRollComplete}/>:""}
-            {gamePhase === 'MOVE' && !players[activePlayerIndex].isAI && (<g transform={`translate(${size.width / ratio - 80} 30)`} onClick={() => {
+            {gamePhase === 'MOVE' && !game.players[activePlayerIndex].isAI && (<g transform={`translate(${size.width / ratio - 80} 30)`} onClick={() => {
                 setSkipMoveActive(true)
                 setTimeout(()=>{
                     if (isMovingAnimation) return;

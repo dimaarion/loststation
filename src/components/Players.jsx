@@ -1,7 +1,7 @@
 
 import {useSpring, animated} from '@react-spring/web';
 
-export const DroidSprite = ({ x = 0, y = 0, tileSize = 100,color = '#00F0FF', name="", treasure = 0, type = "base"  }) => {
+export const DroidSprite = ({ x = 0, y = 0, skipMoveActive=false, tileSize = 100,color = '#00F0FF', name="", treasure = 0, type = "base"  }) => {
     // Пружина рассчитывает физические координаты на основе сетки
     const position = useSpring({
         transform: `translate(${x * tileSize}px, ${y * tileSize}px)`,
@@ -13,7 +13,12 @@ export const DroidSprite = ({ x = 0, y = 0, tileSize = 100,color = '#00F0FF', na
 
     return (
         <animated.g style={position}>
-           <SpaceDroidToken type={type} treasure={treasure} color={color} name={name} />
+            <g>
+                {skipMoveActive?<ellipse rx={20} ry={20} fill="#42C5C9" fillRule="evenodd" filter="url(#filter_active_player_1)"
+                                         transform={'translate(50, 50)'}/>:""}
+                <SpaceDroidToken type={type} treasure={treasure} color={color} name={name} />
+            </g>
+
         </animated.g>
     );
 };
@@ -41,8 +46,6 @@ export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type
                         <stop offset="100%" stopColor="#15181C"/>
                     </linearGradient>
                 </defs>
-
-
                 <g filter="url(#neonGlow)">
 
                     <path d="M15 15 H5 V35" stroke={color} strokeWidth="1" fill="none" opacity="0.7"/>
@@ -62,8 +65,6 @@ export const SpaceDroidToken = ({ color = '#00F0FF', name="", treasure = 0, type
                     </g>
 
                 </g>
-
-
                 <g transform="translate(0, 5)">
 
                     <g stroke="#15181C" strokeWidth="1.5" strokeLinecap="round">

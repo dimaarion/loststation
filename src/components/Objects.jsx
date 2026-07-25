@@ -37,7 +37,7 @@ export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
     };
 
     return (
-            <svg x={x - 60} onClick={handleTap} style={styles.main} width={50} height={50} viewBox={"0 0 100 100"}   >
+            <svg x={x} onClick={handleTap} style={styles.main} width={50} height={50} viewBox={"0 0 100 100"}   >
                 <defs>
                     {/* Фильтр размытия при сильном вращении (Голографический эффект) */}
                     <filter id="motion-blur" x="-20%" y="-20%" width="140%" height="140%">
@@ -52,6 +52,7 @@ export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
                 </defs>
 
                 <g
+                    className={"btn"}
                     filter="url(#motion-blur)"
                     transform={`rotate(${rotation}, 50, 50)`}
                     style={{ transition: isRolling ? 'none' : 'transform 0.3s ease-out' }}
@@ -79,7 +80,7 @@ export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
                     <circle cx="15" cy="32" r="2" fill="#00F0FF" opacity={isRollAvailable ? 0.8 : 0.3} />
 
                     {/* Отрисовка Sci-Fi неонового индикатора цифры по центру верхней проекции */}
-                    <g transform="translate(50, 48)" filter={isRollAvailable ? "url(#neon-glow)" : "none"}>
+                    <g  transform="translate(50, 48)" filter={isRollAvailable ? "url(#neon-glow)" : "none"}>
                         <text
                             textAnchor="middle"
                             dominantBaseline="middle"
@@ -88,6 +89,7 @@ export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
                             fontWeight="bold"
                             fontFamily="monospace"
                             style={{ letterSpacing: '1px' }}
+
                         >
                             {displayValue}
                         </text>
@@ -1172,7 +1174,32 @@ export const SvgColorPicker = ({color="#00ffff", colors = ["#00ffff", "#ff0000",
     );
 };
 
+export function WrappedText({ text, color = "#FFF", maxChars = 20, x = 0, y = 0, lineHeight = 24 }) {
+    // Простая функция разбиения строки по количеству символов
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
 
+    words.forEach((word) => {
+        if ((currentLine + ' ' + word).length <= maxChars) {
+            currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    return (
+        <text x={x} y={y} fill={color}>
+            {lines.map((line, index) => (
+                <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
+                    {line}
+                </tspan>
+            ))}
+        </text>
+    );
+}
 
 
 

@@ -28,3 +28,18 @@ img.no-search {
     fill: #433A78;
     stroke: #A49DD4;
 }
+
+.menu-content{
+    transition: 1s;
+}
+
+.menu-content:hover{
+    fill: #ffffff;
+    transition: 0.5s;
+}
+
+.btn:hover text{
+    fill: #ffffff;
+    transition: 0.5s;
+}
+

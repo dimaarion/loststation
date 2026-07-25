@@ -63,20 +63,20 @@ export default function BattleBotsSettings({setDown}){
                                 <text x={0} y={30} fill={"white"} fontSize={30}>СТАНЦИЯ</text>
                             </g>
                             <g onPointerDown={()=> {
-
+                                setGame({...game,base:game.base > 5?game.base - 5:5})
                             }} transform={`translate(100 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={35} fill={"white"} fontSize={50}>-</text>
                             </g>
                             <g onPointerDown={()=> {
-
+                                setGame({...game,base:game.base + 5})
                             }}  transform={`translate(250 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={32} fill={"white"} fontSize={33}>+</text>
                             </g>
                             <g transform={`translate(150 1)`}>
                                 <rect width={90} height={40} fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" />
-                                <text x={75 -  baseSize.toString().length * 7.5} y={30} fill={"white"} fontSize={25}>{baseSize}</text>
+                                <text x={50 -  baseSize.toString().length * 4.7} y={30} fill={"white"} fontSize={25}>{baseSize}</text>
                             </g>
                         </g>
 
@@ -88,20 +88,20 @@ export default function BattleBotsSettings({setDown}){
                                 <text x={0} y={30} fill={"white"} fontSize={30}>УРОВЕНЬ</text>
                             </g>
                             <g onPointerDown={()=> {
-
+                                setGame({...game,level:game.level > 1?game.level - 1:1})
                             }} transform={`translate(100 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={35} fill={"white"} fontSize={50}>-</text>
                             </g>
                             <g onPointerDown={()=> {
-
+                                setGame({...game,level:game.level + 1})
                             }} transform={`translate(250 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={32} fill={"white"} fontSize={33}>+</text>
                             </g>
                             <g transform={`translate(150 1)`}>
                                 <rect width={90} height={40} fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" />
-                                <text x={50 -  level.toString().length * 8} y={30} fill={"white"} fontSize={25}>{level}</text>
+                                <text x={50 -  level.toString().length * 6} y={30} fill={"white"} fontSize={25}>{level}</text>
                             </g>
                             <g onPointerDown={()=>setDown(false)}>
                                 <Btn x={300} y={50} scale={0.35} text={"Закрыть"} tx={60} fontSize={80}/>

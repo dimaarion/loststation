@@ -1,10 +1,12 @@
 import {useState} from "react";
 import useStore from "../store.js";
+import {generateMaze} from "../action.js";
 
 export default function StartMenu(){
     const [hover, setHover] = useState(false)
     const [id, setId] = useState(0)
     const setGame = useStore((state) => state.setGame);
+    const setMaze = useStore((state) => state.setMaze);
 
     return <svg x={"50%"} width="300"  viewBox="0 0 951 676" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -95,11 +97,15 @@ export default function StartMenu(){
                 setGame({
                     base:5,
                     level:1,
+                    type:"game-bot",
+                    id:"1-1",
+                    selectLevel:1,
                     players:[
-                        { id: 1, name: 'Дроид АЛЬФА', x: 1, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
-                        { id: 2, name: 'Механоид ИИ-88', x: 2, y: 2, color: '#FF9900', stepsLeft: 0,treasure:0, type:"II-88", isAI: true },
+                        { id: 1, name: 'Дроид АЛЬФА', x: 0, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
+                        { id: 2, name: 'Механоид ИИ-88', x: 1, y: 0, color: '#FF9900', stepsLeft: 0,treasure:0, type:"II-88", isAI: true },
                     ]
                 })
+                setMaze(generateMaze(5,1))
             }}
                 onMouseOver={()=>{
                 setHover(true)

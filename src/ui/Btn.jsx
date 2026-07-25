@@ -9,51 +9,7 @@ export default function Btn({x = 0, y = 0, scale = 0.2, text = "", tx = 10, ty= 
     }} onMouseOut={()=>{
         setHover(false)
     }} transform={`translate(${x} ${y}) scale(${scale})`}>
-        <defs>
-            <linearGradient id="gradient_btn_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
-                <stop offset="0" stopColor="#2D5E6B"/>
-                <stop offset="0.49" stopColor="#29A1AB"/>
-                <stop offset="1" stopColor="#2D5E6B"/>
-            </linearGradient>
-            <radialGradient id="gradient_btn_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
-                            gradientTransform="matrix(0 48.763 -168.834 0 168.834 48.763)">
-                <stop offset="0" stopColor="#871E1E"/>
-                <stop offset="1" stopColor="#24C2C9"/>
-            </radialGradient>
-            <filter colorInterpolationFilters="sRGB" x="-155" y="-85" width="157" height="87" id="filter_btn_3">
-                <feFlood floodOpacity="0" result="BackgroundImageFix_btn_1"/>
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha"/>
-                <feOffset dx="0" dy="4"/>
-                <feGaussianBlur stdDeviation="2"/>
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0"/>
-                <feBlend mode="normal" in2="BackgroundImageFix_btn_1" result="Shadow_btn_2"/>
-                <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_2" result="Shape_btn_3"/>
-            </filter>
-            <filter id="blurFilter_btn">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
-            </filter>
 
-
-            <linearGradient id="gradient_btn_hover_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
-                <stop offset="0" stopColor="#4C495C" />
-                <stop offset="0.49" stopColor="#391FC4" />
-                <stop offset="1" stopColor="#4C495C" />
-            </linearGradient>
-            <radialGradient id="gradient_btn_hover_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 29.1 -100.755 0 100.755 29.1)">
-                <stop offset="0" stopColor="#871E1E" />
-                <stop offset="1" stopColor="#B9B1E0" />
-            </radialGradient>
-
-            <filter colorInterpolationFilters="sRGB" x="-182.065" y="-35.059" width="184.065" height="37.059" id="filter_btn_hover_3">
-                <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
-                <feOffset dx="0" dy="4" />
-                <feGaussianBlur stdDeviation="2" />
-                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
-                <feBlend mode="normal" in2="BackgroundImageFix_btn_hover_1" result="Shadow_btn_hover_2" />
-                <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_hover_btn_hover_2" result="Shape_btn_hover_3" />
-            </filter>
-        </defs>
         <g transform="translate(2 89.798)">
             <path
                 d="M0 21.4975L26.2168 0L320.365 0L337.668 14.6813L337.668 74.9791L313.549 97.5252L17.3032 97.5252L0 82.3197L0 21.4975Z"
