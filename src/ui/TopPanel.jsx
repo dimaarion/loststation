@@ -1,12 +1,15 @@
 import {useState} from "react";
 import useStore from "../store.js";
 import LeftMenu from "./LeftMenu.jsx";
+import {CreditChip} from "../components/Objects.jsx";
 
 export default function TopPanel({players, count = 0, countTotal = 0, currentIndex = 0}){
         const [active, setActive] = useState(false);
-         const page = useStore((state) => state.page);
+         const size = useStore((state) => state.size);
+         const ratio = useStore((state) => state.ratio);
          const game = useStore((state) => state.game);
          const pause = useStore((state) => state.pause);
+         const credits = useStore((state) => state.credits);
     return <g>
         <LeftMenu active={active} />
         <rect width={"100%"} height={50} opacity={0.5} fill={"#152C3A"}/>
@@ -23,6 +26,13 @@ export default function TopPanel({players, count = 0, countTotal = 0, currentInd
         </g>
         <g>
             <text x={8} y={40} fill={"#A7EAF2"} fontSize={15} filter={"url(#filter_btn_3)"}>Игроки: {game.players.length}</text>
+        </g>
+        <g transform={`translate(${15} ${-10})`}>
+            <g>
+                <CreditChip width={45} height={45}  />
+                <text fill={"#FFB700"} fontSize={15} filter={"url(#filter_btn_3)"} transform={`translate(${35} ${32})`}>{credits}</text>
+            </g>
+
         </g>
 
     </g>

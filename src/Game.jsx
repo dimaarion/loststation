@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     checkConnection,
     countTotalTreasures,
     findAvailablePaths,
     getCameraOffset,
-    getRandomInt, treasurePlayerCount
+    getRandomInt
 } from "./action.js";
 import SpaseBase from "./components/SpaseBase.jsx";
 import {DroidSprite} from "./components/Players.jsx";
@@ -17,6 +17,7 @@ import GameOne from "./ui/GameOne.jsx";
 import Btn from "./ui/Btn.jsx";
 import DroneParams from "./ui/DroneParams.jsx";
 import {pointInRect} from "./сollisions.js";
+import Victory from "./ui/Victory.jsx";
 const MODES = {
     SINGLE: 'SINGLE',
     SPLIT: 'SPLIT',
@@ -26,6 +27,9 @@ const MODES = {
 
 
 export default function Game({mode = "SINGLE", maze = []}){
+    const consecutiveSkipsRef = useRef(0);
+    const isBotActingRef = useRef(false);
+    const playerRotateRef = useRef(false);
     const [pathsData, setPathsData] = useState({});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
     const [availableMoves, setAvailableMoves] = useState([]);
@@ -43,11 +47,16 @@ export default function Game({mode = "SINGLE", maze = []}){
     const game = useStore((state) => state.game);
     const setGame = useStore((state) => state.setGame);
     const pause = useStore((state) => state.pause);
-
+    const pointsGame = useStore((state) => state.pointsGame);
+    const setPointsGame = useStore((state)=>state.setPointsGame)
 
     useEffect(()=>{
         (()=>setBoard(maze))()
     },[maze])
+
+    useEffect(()=>{
+
+    },[pointsGame])
 
 
     const { offsetX, offsetY } = getCameraOffset(
@@ -62,7 +71,9 @@ export default function Game({mode = "SINGLE", maze = []}){
         // Находим все пути вдоль стен
         const paths = findAvailablePaths(player.x, player.y, result, board);
         setPathsData(paths);
-        useStore.getState().setGamePhase('MOVE');
+        setTimeout(() => {
+            useStore.getState().setGamePhase("MOVE");
+        }, 0);
        return null
     },[game.players, activePlayerIndex, board]);
 
@@ -108,6 +119,10 @@ export default function Game({mode = "SINGLE", maze = []}){
                     row.map(tile => {
                         if( tile.x === nextX && tile.y === nextY && tile.treasure){
                             tile = {...tile, treasure: null, playerId:activePlayerIndex};
+                            setTimeout(()=>{
+                                setPointsGame(activePlayerIndex)
+                            },0)
+
                         }
                         return tile
                         }
@@ -116,7 +131,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             );
 
 
-          
+
             currentStep++;
 
             // Если прошли весь маршрут до конца
@@ -128,14 +143,14 @@ export default function Game({mode = "SINGLE", maze = []}){
             }
 
         }, 1000); // Скорость шага дроида
-    }, [isMovingAnimation, pathsData, setGame, game, activePlayerIndex]);
+    }, [isMovingAnimation, pathsData, setGame, game, activePlayerIndex, setPointsGame]);
 
     const handleTileRotate = useCallback((targetX, targetY) => {
-
+        if(playerRotateRef.current)return;
         // 1. Проверяем, что сейчас действительно фаза вращения и дроид не находится в движении
         if (gamePhase !== 'ROTATE' || isMovingAnimation) return;
 
-
+        playerRotateRef.current = true
         const currentPlayer = game.players[activePlayerIndex];
 
         // 2. Расчет дистанции: проверяем, что плитка находится в радиусе 1 шага
@@ -158,6 +173,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             // 4. ПЕРЕКЛЮЧЕНИЕ ХОДА НА СЛЕДУЮЩЕГО ИГРОКА
             setTimeout(()=>{
                 setAvailableMoves([]); // На всякий случай очищаем подсветку
+                playerRotateRef.current = false
                 setGame({...game,
                     players: game.players.map((p, idx) =>{
                         // Переключаем индекс активного игрока по кругу
@@ -166,7 +182,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                         return  idx === activePlayerIndex ? { ...p, stepsLeft: 0 } : p
                     })
                 })
-                
+
 
                 // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
                 useStore.getState().setGamePhase('ROLL');
@@ -177,219 +193,570 @@ export default function Game({mode = "SINGLE", maze = []}){
 
 
 
+    // ==========================================
+    // УЛУЧШЕННЫЙ ИИ (БОТ)
+    // ==========================================
+    // ==========================================
+    // ИСПРАВЛЕННЫЙ ИИ (БОТ)
+    // ==========================================
+   /* useEffect(() => {
+        if (mode !== MODES.SINGLE) return;
+        const currentPlayer = game.players[activePlayerIndex];
+        if (!currentPlayer || !currentPlayer.isAI || isMovingAnimation) return;
+
+        // 1. БРОСОК КУБИКА
+        if (gamePhase === 'ROLL') {
+            const timer = setTimeout(() => {
+                const rolledNumber = Math.floor(Math.random() * 6) + 1;
+                setDroidCube(rolledNumber);
+                handleDiceRollComplete(rolledNumber);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+
+        // 2. ФАЗА ДВИЖЕНИЯ (MOVE) — БОТ ПРИОРИТЕТНО ДВИГАЕТСЯ
+        if (gamePhase === 'MOVE') {
+            const timer = setTimeout(() => {
+                const availableKeys = Object.keys(pathsData);
+
+                // Если идти физически некуда (выпал 0 или нет путей) — переходим к вращению
+                if (availableKeys.length === 0) {
+                    useStore.getState().setGamePhase('ROTATE');
+                    return;
+                }
+
+                // Клетка, где бот стоит сейчас
+                const currentKey = `${currentPlayer.x}-${currentPlayer.y}`;
+
+                // Варианты куда пойти (исключая стояние на месте, если есть выбор)
+                const moveOptions = availableKeys.filter(k => k !== currentKey);
+
+                // Если альтернативных путей нет (только текущая клетка) — пропускаем
+                if (moveOptions.length === 0) {
+                    setPathsData({});
+                    useStore.getState().setGamePhase('ROTATE');
+                    return;
+                }
+
+                // ШАГ А: Проверяем, есть ли среди доступных ходов сокровища
+                const treasureKeys = moveOptions.filter(key => {
+                    const [x, y] = key.split('-').map(Number);
+                    return board[y]?.[x]?.treasure !== null;
+                });
+
+                let chosenKey = null;
+
+                if (treasureKeys.length > 0) {
+                    // Идем к ближайшему сокровищу в зоне досягаемости
+                    chosenKey = treasureKeys.reduce((best, curr) =>
+                        pathsData[curr].length < pathsData[best].length ? curr : best
+                    );
+                } else {
+                    // ШАГ Б: Если прямых сокровищ нет, выбираем путь, где ДЛИННЕЕ маршрут (чтобы больше исследовать)
+                    // или выбираем клетку, которая ближе всего к любому сокровищу на карте
+                    let allTreasures = [];
+                    board.forEach(row => {
+                        row.forEach(tile => {
+                            if (tile.treasure !== null) allTreasures.push(tile);
+                        });
+                    });
+
+                    if (allTreasures.length > 0) {
+                        let bestDist = Infinity;
+                        moveOptions.forEach(key => {
+                            const [tx, ty] = key.split('-').map(Number);
+                            allTreasures.forEach(tr => {
+                                const dist = Math.abs(tx - tr.x) + Math.abs(ty - tr.y);
+                                if (dist < bestDist) {
+                                    bestDist = dist;
+                                    chosenKey = key;
+                                }
+                            });
+                        });
+                    }
+
+                    // Если сокровищ вообще нет или дистанции равны — просто идем на самую дальнюю доступную клетку
+                    if (!chosenKey) {
+                        chosenKey = moveOptions.reduce((best, curr) =>
+                            pathsData[curr].length > pathsData[best].length ? curr : best
+                        );
+                    }
+                }
+
+                // Запускаем движение
+                if (chosenKey) {
+                    animateRoute(chosenKey);
+                } else {
+                    setPathsData({});
+                    useStore.getState().setGamePhase('ROTATE');
+                }
+
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+
+        // 3. ФАЗА ВРАЩЕНИЯ (ROTATE)
+        if (gamePhase === 'ROTATE') {
+            const timer = setTimeout(() => {
+                const clickableTiles = [];
+                for (let y = 0; y < board.length; y++) {
+                    for (let x = 0; x < board[y].length; x++) {
+                        const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
+                        if (dist <= 1) clickableTiles.push(board[y][x]);
+                    }
+                }
+
+                if (clickableTiles.length === 0) return;
+
+                let bestTileToRotate = null;
+
+                // 1. Проверяем, можно ли поворотом открыть проход к сокровищу
+                for (let tile of clickableTiles) {
+                    for (let angle of [90, 180, 270]) {
+                        const simTile = { ...tile, rotation: (tile.rotation + angle) % 360 };
+                        const botTile = board[currentPlayer.y][currentPlayer.x];
+
+                        if (tile.x !== currentPlayer.x || tile.y !== currentPlayer.y) {
+                            if (checkConnection(botTile, simTile) && tile.treasure !== null) {
+                                bestTileToRotate = tile;
+                                break;
+                            }
+                        }
+                    }
+                    if (bestTileToRotate) break;
+                }
+
+                // 2. Если явного сокровища рядом нет — крутим СОСЕДНЮЮ плитку (не под собой!), чтобы не ломать свою позицию
+                if (!bestTileToRotate) {
+                    const neighborTiles = clickableTiles.filter(t => !(t.x === currentPlayer.x && t.y === currentPlayer.y));
+                    if (neighborTiles.length > 0) {
+                        bestTileToRotate = neighborTiles[Math.floor(Math.random() * neighborTiles.length)];
+                    } else {
+                        bestTileToRotate = clickableTiles[0];
+                    }
+                }
+
+                handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
+            }, 800);
+
+            return () => clearTimeout(timer);
+        }
+    }, [gamePhase, activePlayerIndex, game.players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
+    */
+    // ==========================================
+    // УМНЫЙ ИИ (ПОИСК ПУТИ + ВРАЩЕНИЕ ПОД СОБОЙ)
+    // ==========================================
+  /*  useEffect(() => {
+        if (mode !== MODES.SINGLE) return;
+        const currentPlayer = game.players[activePlayerIndex];
+        if (!currentPlayer || !currentPlayer.isAI || isMovingAnimation) return;
+
+        // 1. ФАЗА БРОСКА КУБИКА (ROLL)
+        if (gamePhase === 'ROLL') {
+            const timer = setTimeout(() => {
+                const rolledNumber = Math.floor(Math.random() * 6) + 1;
+                setDroidCube(rolledNumber);
+                handleDiceRollComplete(rolledNumber);
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+
+        // 2. ФАЗА ДВИЖЕНИЯ (MOVE) — Идем только по целевому пути
+        if (gamePhase === 'MOVE') {
+            const timer = setTimeout(() => {
+                const availableKeys = Object.keys(pathsData);
+
+                if (availableKeys.length === 0) {
+                    useStore.getState().setGamePhase('ROTATE');
+                    return;
+                }
+
+                // Шаг А: Проверяем, есть ли прямой путь до любого сокровища
+                const treasureKeys = availableKeys.filter(key => {
+                    const [x, y] = key.split('-').map(Number);
+                    return board[y]?.[x]?.treasure !== null;
+                });
+
+                let chosenKey = null;
+
+                if (treasureKeys.length > 0) {
+                    // Берём кратчайший маршрут из доступных до сокровища
+                    chosenKey = treasureKeys.reduce((best, curr) =>
+                        pathsData[curr].length < pathsData[best].length ? curr : best
+                    );
+                } else {
+                    // Шаг Б: Если прямого пути к сокровищу нет, ищем путь, который максимально приближает к сокровищу
+                    let nearestTreasure = null;
+                    let minDist = Infinity;
+
+                    board.forEach(row => {
+                        row.forEach(tile => {
+                            if (tile.treasure !== null) {
+                                const dist = Math.abs(currentPlayer.x - tile.x) + Math.abs(currentPlayer.y - tile.y);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestTreasure = tile;
+                                }
+                            }
+                        });
+                    });
+
+                    if (nearestTreasure) {
+                        let bestDist = minDist;
+                        availableKeys.forEach(key => {
+                            const [tx, ty] = key.split('-').map(Number);
+                            const distToTr = Math.abs(tx - nearestTreasure.x) + Math.abs(ty - nearestTreasure.y);
+
+                            // Выбираем клетку, которая приближает нас к сокровищу
+                            if (distToTr < bestDist) {
+                                bestDist = distToTr;
+                                chosenKey = key;
+                            }
+                        });
+                    }
+                }
+
+                // Если выгодного движения нет (все варианты отдаляют) — пропускаем ход и переходим к ROTATE
+                if (chosenKey && chosenKey !== `${currentPlayer.x}-${currentPlayer.y}`) {
+                    animateRoute(chosenKey);
+                } else {
+                    setPathsData({});
+                    useStore.getState().setGamePhase('ROTATE');
+                }
+
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+
+        // 3. ФАЗА ВРАЩЕНИЯ (ROTATE) — Расчет всего пути и вращение плитки (включая плитку под собой)
+        if (gamePhase === 'ROTATE') {
+            const timer = setTimeout(() => {
+                // Все плитки на расстоянии <= 1 (включая плитку ПОД СОБОЙ)
+                const clickableTiles = [];
+                for (let y = 0; y < board.length; y++) {
+                    for (let x = 0; x < board[y].length; x++) {
+                        const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
+                        if (dist <= 1) clickableTiles.push(board[y][x]);
+                    }
+                }
+
+                if (clickableTiles.length === 0) return;
+
+                let bestTileToRotate = null;
+                let foundDirectTreasurePath = false;
+
+                // Находим все сокровища на карте
+                const treasures = [];
+                board.forEach(row => {
+                    row.forEach(tile => {
+                        if (tile.treasure !== null) treasures.push(tile);
+                    });
+                });
+
+                // --- СИМУЛЯЦИЯ ВСЕХ ВАРИАНТОВ ПОВОРОТА ---
+                // Проверяем каждую плитку (включая текущую под ботом) во всех 3 поворотах (+90, +180, +270)
+                for (let tile of clickableTiles) {
+                    for (let angle of [90, 180, 270]) {
+                        const simRotation = (tile.rotation + angle) % 360;
+
+                        // Создаем симулированную доску
+                        const simBoard = board.map(row =>
+                            row.map(t => (t.x === tile.x && t.y === tile.y ? { ...t, rotation: simRotation } : t))
+                        );
+
+                        const currentBotTile = simBoard[currentPlayer.y][currentPlayer.x];
+
+                        // 1. Проверяем, дает ли этот поворот (в т.ч. под собой) ПРЯМУЮ связь с сокровищем
+                        for (let tr of treasures) {
+                            const trTile = simBoard[tr.y][tr.x];
+
+                            // Проверяем прямое соединение, если сокровище на соседней клетке
+                            if (Math.abs(currentPlayer.x - tr.x) + Math.abs(currentPlayer.y - tr.y) <= 1) {
+                                if (checkConnection(currentBotTile, trTile)) {
+                                    bestTileToRotate = tile;
+                                    foundDirectTreasurePath = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (foundDirectTreasurePath) break;
+                    }
+                    if (foundDirectTreasurePath) break;
+                }
+
+                // 2. Если прямого прохода к сокровищу за один поворот нет — ищем поворот,
+                // который открывает максимум новых соединений в сторону ближайшего сокровища
+                if (!bestTileToRotate && treasures.length > 0) {
+                    // Находим ближайшее сокровище
+                    const nearestTr = treasures.reduce((best, curr) => {
+                        const d1 = Math.abs(currentPlayer.x - best.x) + Math.abs(currentPlayer.y - best.y);
+                        const d2 = Math.abs(currentPlayer.x - curr.x) + Math.abs(currentPlayer.y - curr.y);
+                        return d2 < d1 ? curr : best;
+                    });
+
+                    let maxConnections = -1;
+
+                    for (let tile of clickableTiles) {
+                        for (let angle of [90, 180, 270]) {
+                            const simRotation = (tile.rotation + angle) % 360;
+                            const simTile = { ...tile, rotation: simRotation };
+
+                            // Считаем, сколько соседей соединяются при таком повороте
+                            let connCount = 0;
+                            clickableTiles.forEach(neighbor => {
+                                if (neighbor.x === tile.x && neighbor.y === tile.y) return;
+                                if (checkConnection(simTile, neighbor)) {
+                                    connCount++;
+                                    // Дополнительный вес, если сосед ближе к сокровищу
+                                    const distToTr = Math.abs(neighbor.x - nearestTr.x) + Math.abs(neighbor.y - nearestTr.y);
+                                    if (distToTr < Math.abs(currentPlayer.x - nearestTr.x) + Math.abs(currentPlayer.y - nearestTr.y)) {
+                                        connCount += 2;
+                                    }
+                                }
+                            });
+
+                            if (connCount > maxConnections) {
+                                maxConnections = connCount;
+                                bestTileToRotate = tile;
+                            }
+                        }
+                    }
+                }
+
+                // 3. Резервный выбор (если пути одинаковы) — крутим плитку под собой, чтобы изменить ориентацию выходов
+                if (!bestTileToRotate) {
+                    bestTileToRotate = board[currentPlayer.y][currentPlayer.x];
+                }
+
+                // Выполняем поворот найденной плитки
+                handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
+
+            }, 800);
+
+            return () => clearTimeout(timer);
+        }
+    }, [gamePhase, activePlayerIndex, game.players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
+   */
+    // ==========================================
+    // УМНЫЙ ИИ С ПРИНУДИТЕЛЬНЫМ ДВИЖЕНИЕМ ПРИ 2 ПРОПУСКАХ
+    // ==========================================
     useEffect(() => {
         if (mode !== MODES.SINGLE) return;
         const currentPlayer = game.players[activePlayerIndex];
-        if (currentPlayer && currentPlayer.isAI && !isMovingAnimation) {
+        if (!currentPlayer || !currentPlayer.isAI || isMovingAnimation) return;
 
-            // ==========================================
-            // 1. БОТ ДЕЛАЕТ БРОСОК КУБИКА
-            // ==========================================
-            if (gamePhase === 'ROLL') {
-                setTimeout(() => {
-                    const rolledNumber = Math.floor(Math.random() * 6) + 1;
-                    setDroidCube(rolledNumber);
-                    handleDiceRollComplete(rolledNumber);
-                }, 1200);
-            }
+        // 1. ФАЗА БРОСКА КУБИКА (ROLL)
+        if (gamePhase === 'ROLL') {
+            isBotActingRef.current = false; // Сбрасываем блокировку для нового хода
+            const timer = setTimeout(() => {
+                const rolledNumber = Math.floor(Math.random() * 6) + 1;
+                setDroidCube(rolledNumber);
+                handleDiceRollComplete(rolledNumber);
+            }, 800);
+            return () => clearTimeout(timer);
+        }
 
-            // ==========================================
-            // 2. БОТ В ФАЗЕ ДВИЖЕНИЯ (MOVE)
-            // ==========================================
-            if (gamePhase === 'MOVE') {
-                setTimeout(() => {
-                    const availableKeys = Object.keys(pathsData);
+        // 2. ФАЗА ДВИЖЕНИЯ (MOVE)
+        if (gamePhase === 'MOVE') {
+            const timer = setTimeout(() => {
+                const availableKeys = Object.keys(pathsData);
+                const currentKey = `${currentPlayer.x}-${currentPlayer.y}`;
 
-                    if (availableKeys.length === 0) {
-                        useStore.getState().setGamePhase('ROTATE');
-                        return;
-                    }
+                if (availableKeys.length === 0) {
+                    consecutiveSkipsRef.current += 1; // Учитываем пропуск, если физически нет путей
+                    useStore.getState().setGamePhase('ROTATE');
+                    return;
+                }
 
-                    // Шаг A: Ищем все доступные клетки с сокровищами
-                    const treasureKeys = availableKeys.filter(key => {
-                        const [x, y] = key.split('-').map(Number);
-                        return board[y]?.[x]?.treasure !== null;
+                // Доступные варианты движения (без текущей клетки)
+                const moveOptions = availableKeys.filter(k => k !== currentKey);
+
+                // Если альтернативных вариантов нет вообще
+                if (moveOptions.length === 0) {
+                    consecutiveSkipsRef.current += 1;
+                    setPathsData({});
+                    useStore.getState().setGamePhase('ROTATE');
+                    return;
+                }
+
+                // --- ПРОВЕРКА: ЕСЛИ УЖЕ 2 ХОДА НЕТ ДВИЖЕНИЯ — ОБЯЗАН ИДТИ ---
+                const isForcedToMove = consecutiveSkipsRef.current >= 2;
+
+                // Шаг А: Проверяем, есть ли прямой путь до сокровища
+                const treasureKeys = moveOptions.filter(key => {
+                    const [x, y] = key.split('-').map(Number);
+                    return board[y]?.[x]?.treasure !== null;
+                });
+
+                let chosenKey = null;
+
+                if (treasureKeys.length > 0) {
+                    // Выбираем кратчайший маршрут к сокровищу
+                    chosenKey = treasureKeys.reduce((best, curr) =>
+                        pathsData[curr].length < pathsData[best].length ? curr : best
+                    );
+                } else {
+                    // Шаг Б: Ищем ближайшее сокровище на всей карте
+                    let nearestTreasure = null;
+                    let minDist = Infinity;
+
+                    board.forEach(row => {
+                        row.forEach(tile => {
+                            if (tile.treasure !== null) {
+                                const dist = Math.abs(currentPlayer.x - tile.x) + Math.abs(currentPlayer.y - tile.y);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestTreasure = tile;
+                                }
+                            }
+                        });
                     });
 
-                    let finalTargetKey = null;
+                    if (nearestTreasure) {
+                        let bestDist = minDist;
+                        moveOptions.forEach(key => {
+                            const [tx, ty] = key.split('-').map(Number);
+                            const distToTr = Math.abs(tx - nearestTreasure.x) + Math.abs(ty - nearestTreasure.y);
 
-                    if (treasureKeys.length > 0) {
-                        // Если есть плитки с сокровищами, выбираем ту, до которой короче путь
-                        finalTargetKey = treasureKeys.reduce((bestKey, currentKey) => {
-                            const bestLength = pathsData[bestKey].length;
-                            const currentLength = pathsData[currentKey].length;
-                            return currentLength < bestLength ? currentKey : bestKey;
+                            // Выбираем клетку, приближающую к сокровищу
+                            if (distToTr < bestDist) {
+                                bestDist = distToTr;
+                                chosenKey = key;
+                            }
                         });
-                    } else {
-                        // Шаг B: Если сокровищ в зоне досягаемости нет, ищем ближайшее сокровище на всей карте
-                        let allTreasures = [];
-                        for (let y = 0; y < board.length; y++) {
-                            for (let x = 0; x < board[y].length; x++) {
-                                if (board[y][x].treasure !== null) {
-                                    allTreasures.push({ x, y });
+                    }
+
+                    // Если целевого приближения нет, НО БОТ ОБЯЗАН ИДТИ (isForcedToMove === true)
+                    // выбираем самый длинный доступный маршрут, чтобы не застаиваться
+                    if (!chosenKey && isForcedToMove) {
+                        chosenKey = moveOptions.reduce((best, curr) =>
+                            pathsData[curr].length > pathsData[best].length ? curr : best
+                        );
+                    }
+                }
+
+                // --- ПРИНЯТИЕ РЕШЕНИЯ И СБРОС/УВЕЛИЧЕНИЕ СЧЁТЧИКА ---
+                if (chosenKey) {
+                    consecutiveSkipsRef.current = 0; // Сбрасываем счётчик, так как бот совершает движение!
+                    animateRoute(chosenKey);
+                } else {
+                    consecutiveSkipsRef.current += 1; // Увеличиваем счётчик пропусков
+                    setPathsData({});
+                    useStore.getState().setGamePhase('ROTATE');
+                }
+
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+
+        // 3. ФАЗА ВРАЩЕНИЯ (ROTATE)
+        if (gamePhase === 'ROTATE') {
+            // Если бот уже принял решение в этой фазе — игнорируем повторные срабатывания useEffect
+            if (isBotActingRef.current) return;
+
+            // Ставим блок на повторные вызовы
+            isBotActingRef.current = true;
+
+            const timer = setTimeout(() => {
+                const clickableTiles = [];
+                for (let y = 0; y < board.length; y++) {
+                    for (let x = 0; x < board[y].length; x++) {
+                        const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
+                        if (dist <= 1) clickableTiles.push(board[y][x]);
+                    }
+                }
+
+                if (clickableTiles.length === 0) {
+                    isBotActingRef.current = false;
+                    return;
+                }
+
+                let bestTileToRotate = null;
+                let foundDirectTreasurePath = false;
+
+                const treasures = [];
+                board.forEach(row => {
+                    row.forEach(tile => {
+                        if (tile.treasure !== null) treasures.push(tile);
+                    });
+                });
+
+                // Проверяем все варианты вращения (включая плитку ПОД СОБОЙ)
+                for (let tile of clickableTiles) {
+                    for (let angle of [90, 180, 270]) {
+                        const simRotation = (tile.rotation + angle) % 360;
+
+                        const simBoard = board.map(row =>
+                            row.map(t => (t.x === tile.x && t.y === tile.y ? { ...t, rotation: simRotation } : t))
+                        );
+
+                        const currentBotTile = simBoard[currentPlayer.y][currentPlayer.x];
+
+                        for (let tr of treasures) {
+                            const trTile = simBoard[tr.y][tr.x];
+                            if (Math.abs(currentPlayer.x - tr.x) + Math.abs(currentPlayer.y - tr.y) <= 1) {
+                                if (checkConnection(currentBotTile, trTile)) {
+                                    bestTileToRotate = tile;
+                                    foundDirectTreasurePath = true;
+                                    break;
                                 }
                             }
                         }
 
-                        if (allTreasures.length > 0) {
-                            // Для каждой доступной для шага клетки считаем минимальное расстояние до любого сокровища
-                            let bestDist = Infinity;
-                            availableKeys.forEach(key => {
-                                const [targetX, targetY] = key.split('-').map(Number);
-
-                                allTreasures.forEach(tr => {
-                                    // Манхэттенское расстояние от конечной точки пути до сокровища
-                                    const dist = Math.abs(targetX - tr.x) + Math.abs(targetY - tr.y);
-                                    if (dist < bestDist) {
-                                        bestDist = dist;
-                                        finalTargetKey = key;
-                                    }
-                                });
-                            });
-                        }
+                        if (foundDirectTreasurePath) break;
                     }
+                    if (foundDirectTreasurePath) break;
+                }
 
-                    // Резервный вариант: если сокровищ вообще не осталось на карте, ходим случайно
-                    if (!finalTargetKey) {
-                        finalTargetKey = availableKeys[Math.floor(Math.random() * availableKeys.length)];
-                    }
+                // Эвристика поиска наиболее выгодного поворота
+                if (!bestTileToRotate && treasures.length > 0) {
+                    const nearestTr = treasures.reduce((best, curr) => {
+                        const d1 = Math.abs(currentPlayer.x - best.x) + Math.abs(currentPlayer.y - best.y);
+                        const d2 = Math.abs(currentPlayer.x - curr.x) + Math.abs(currentPlayer.y - curr.y);
+                        return d2 < d1 ? curr : best;
+                    });
 
-                    animateRoute(finalTargetKey);
-                }, 1000);
-            }
+                    let maxConnections = -1;
 
-            // ==========================================
-            // 3. БОТ В ФАЗЕ ВРАЩЕНИЯ (ROTATE)
-            // ==========================================
-            // ==========================================
-// БОТ В ФАЗЕ ВРАЩЕНИЯ (ROTATE)
-// ==========================================
-            if (gamePhase === 'ROTATE') {
-                setTimeout(() => {
-                    const botTile = board[currentPlayer.y]?.[currentPlayer.x];
-
-                    // 1. Собираем все плитки, которые бот может вращать (расстояние <= 1)
-                    const clickableTiles = [];
-                    for (let y = 0; y < board.length; y++) {
-                        for (let x = 0; x < board[y].length; x++) {
-                            const distance = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
-                            if (distance <= 1) {
-                                clickableTiles.push(board[y][x]);
-                            }
-                        }
-                    }
-
-                    if (clickableTiles.length === 0) {
-                        useStore.getState().setGamePhase('');
-                        return;
-                    }
-
-                    let bestTileToRotate = null;
-
-
-                    // Ищем ближайшее сокровище на карте, чтобы понять, куда вообще боту хочется идти
-                    let nearestTreasure = null;
-                    let minDistance = Infinity;
-                    for (let y = 0; y < board.length; y++) {
-                        for (let x = 0; x < board[y].length; x++) {
-                            if (board[y][x].treasure !== null) {
-                                const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
-                                if (dist < minDistance) {
-                                    minDistance = dist;
-                                    nearestTreasure = board[y][x];
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. СИМУЛЯЦИЯ: Пробуем вращать доступные плитки в "уме"
                     for (let tile of clickableTiles) {
-                        // Пробуем 3 варианта поворота: +90, +180, +270
-                        for (let rotationOffset of [90, 180, 270]) {
-                            const simulatedRotation = (tile.rotation + rotationOffset) % 360;
-                            const simulatedTile = { ...tile, rotation: simulatedRotation };
+                        for (let angle of [90, 180, 270]) {
+                            const simRotation = (tile.rotation + angle) % 360;
+                            const simTile = { ...tile, rotation: simRotation };
 
-                            // Ситуация А: Если мы крутим соседнюю плитку
-                            if (tile.x !== currentPlayer.x || tile.y !== currentPlayer.y) {
-                                // Проверяем, соединит ли этот поворот бота с этой соседней плиткой
-                                const connected = checkConnection(botTile, simulatedTile);
-
-                                if (connected) {
-                                    // Если на этой плитке лежит сокровище — это идеальный кандидат!
-                                    if (tile.treasure !== null) {
-                                        bestTileToRotate = tile;
-                                        break;
-                                    }
-
-                                    // Если сокровище дальше, проверяем, приближает ли нас эта плитка к цели
-                                    if (nearestTreasure) {
-                                        const distFromConnectedToTreasure = Math.abs(tile.x - nearestTreasure.x) + Math.abs(tile.y - nearestTreasure.y);
-                                        if (distFromConnectedToTreasure < minDistance) {
-                                            bestTileToRotate = tile;
-                                        }
+                            let connCount = 0;
+                            clickableTiles.forEach(neighbor => {
+                                if (neighbor.x === tile.x && neighbor.y === tile.y) return;
+                                if (checkConnection(simTile, neighbor)) {
+                                    connCount++;
+                                    const distToTr = Math.abs(neighbor.x - nearestTr.x) + Math.abs(neighbor.y - nearestTr.y);
+                                    if (distToTr < Math.abs(currentPlayer.x - nearestTr.x) + Math.abs(currentPlayer.y - nearestTr.y)) {
+                                        connCount += 2;
                                     }
                                 }
-                            }
-                            // Ситуация Б: Если бот крутит плитку под самим собой
-                            else {
-                                // Проверяем, с какими соседями соединит бота его собственный поворот
-                                for (let neighbor of clickableTiles) {
-                                    if (neighbor.x === currentPlayer.x && neighbor.y === currentPlayer.y) continue;
-
-                                    const connected = checkConnection(simulatedTile, neighbor);
-                                    // Если поворот открывает проход к соседу с сокровищем
-                                    if (connected && neighbor.treasure !== null) {
-                                        bestTileToRotate = tile;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (bestTileToRotate) break; // Нашли отличное решение, прекращаем поиск
-                    }
-
-                    // 3. ЭВРИСТИКА-ВРЕДИТЕЛЬ (если себе открыть путь не получается, мешаем человеку)
-                    if (!bestTileToRotate) {
-                        const humanPlayer = game.players.find(p => !p.isAI);
-                        if (humanPlayer) {
-                            const humanTile = board[humanPlayer.y]?.[humanPlayer.x];
-
-                            // Ищем плитку рядом с человеком, которую мы можем повернуть, чтобы сломать ему проход
-                            const tileToSabotage = clickableTiles.find(tile => {
-                                const isBotOwnTile = tile.x === currentPlayer.x && tile.y === currentPlayer.y;
-                                if (isBotOwnTile) return false;
-
-                                // Проверяем, соединен ли сейчас человек с этой плиткой
-                                const isConnectedToHumanNow = checkConnection(humanTile, tile);
-                                if (isConnectedToHumanNow) {
-                                    // Если мы её повернем, связь прервется — это отличная диверсия!
-                                    return true;
-                                }
-                                return false;
                             });
 
-                            if (tileToSabotage) {
-                                bestTileToRotate = tileToSabotage;
+                            if (connCount > maxConnections) {
+                                maxConnections = connCount;
+                                bestTileToRotate = tile;
                             }
                         }
                     }
+                }
 
-                    // 4. ДЕФОЛТНЫЙ ВЫБОР (если умных ходов нет, крутим случайную соседнюю плитку, но не под собой)
-                    if (!bestTileToRotate) {
-                        const safeTiles = clickableTiles.filter(t => !(t.x === currentPlayer.x && t.y === currentPlayer.y));
-                        const pool = safeTiles.length > 0 ? safeTiles : clickableTiles;
-                        bestTileToRotate = pool[Math.floor(Math.random() * pool.length)];
-                    }
+                // Резерв — крутим плитку под собой
+                if (!bestTileToRotate) {
+                    bestTileToRotate = board[currentPlayer.y][currentPlayer.x];
+                }
 
-                    // Физически поворачиваем выбранную плитку в игре
-                    handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
-                    useStore.getState().setGamePhase('');
+                handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
 
-                }, 1500);
-            }
+            }, 800);
+
+            return () => clearTimeout(timer);
         }
     }, [gamePhase, activePlayerIndex, game.players, pathsData, isMovingAnimation, handleDiceRollComplete, animateRoute, board, handleTileRotate, mode]);
-
+    // ... Оставшаяся часть рендера (JSX) остается без изменений ...
 
     useEffect(() => {
         window.addEventListener('resize', ()=>{
@@ -416,7 +783,7 @@ export default function Game({mode = "SINGLE", maze = []}){
     const countTotal = useMemo(()=>{
         return countTotalTreasures(maze);
     },[maze])
-    
+
 
 
 
@@ -439,74 +806,75 @@ export default function Game({mode = "SINGLE", maze = []}){
     }),[droidCube])
 
 
-
+    useEffect(() => {
+        console.log(game.players)
+    }, []);
 
     return <div>
         <svg xmlns="http://www.w3.org/2000/svg" style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
-            <g>
+            <defs>
+                <filter colorInterpolationFilters="sRGB" x="-18" y="-18" width="20" height="20" id="filter_1">
+                    <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
+                    <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <filter colorInterpolationFilters="sRGB" x="-50" y="-50" width="100" height="100" id="filter_active_player_1">
+                    <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
+                    <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <linearGradient id="gradient_btn_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
+                    <stop offset="0" stopColor="#2D5E6B"/>
+                    <stop offset="0.49" stopColor="#29A1AB"/>
+                    <stop offset="1" stopColor="#2D5E6B"/>
+                </linearGradient>
+                <radialGradient id="gradient_btn_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
+                                gradientTransform="matrix(0 48.763 -168.834 0 168.834 48.763)">
+                    <stop offset="0" stopColor="#871E1E"/>
+                    <stop offset="1" stopColor="#24C2C9"/>
+                </radialGradient>
+                <filter colorInterpolationFilters="sRGB" x="-155" y="-85" width="157" height="87" id="filter_btn_3">
+                    <feFlood floodOpacity="0" result="BackgroundImageFix_btn_1"/>
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha"/>
+                    <feOffset dx="0" dy="4"/>
+                    <feGaussianBlur stdDeviation="2"/>
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0"/>
+                    <feBlend mode="normal" in2="BackgroundImageFix_btn_1" result="Shadow_btn_2"/>
+                    <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_2" result="Shape_btn_3"/>
+                </filter>
+                <filter id="blurFilter_btn">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+                </filter>
 
+
+                <linearGradient id="gradient_btn_hover_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
+                    <stop offset="0" stopColor="#4C495C" />
+                    <stop offset="0.49" stopColor="#391FC4" />
+                    <stop offset="1" stopColor="#4C495C" />
+                </linearGradient>
+                <radialGradient id="gradient_btn_hover_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 29.1 -100.755 0 100.755 29.1)">
+                    <stop offset="0" stopColor="#871E1E" />
+                    <stop offset="1" stopColor="#B9B1E0" />
+                </radialGradient>
+
+                <filter colorInterpolationFilters="sRGB" x="-182.065" y="-35.059" width="184.065" height="37.059" id="filter_btn_hover_3">
+                    <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
+                    <feOffset dx="0" dy="4" />
+                    <feGaussianBlur stdDeviation="2" />
+                    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
+                    <feBlend mode="normal" in2="BackgroundImageFix_btn_hover_1" result="Shadow_btn_hover_2" />
+                    <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_hover_btn_hover_2" result="Shape_btn_hover_3" />
+                </filter>
+            </defs>
+            <g>
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
                 {stars.map((el,i)=> <g key={i + "star"} transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
-                    <defs>
-                        <filter colorInterpolationFilters="sRGB" x="-18" y="-18" width="20" height="20" id="filter_1">
-                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
-                            <feGaussianBlur stdDeviation="5" />
-                        </filter>
-                        <filter colorInterpolationFilters="sRGB" x="-50" y="-50" width="100" height="100" id="filter_active_player_1">
-                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix_1" result="Shape_2" />
-                            <feGaussianBlur stdDeviation="5" />
-                        </filter>
-                        <linearGradient id="gradient_btn_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
-                            <stop offset="0" stopColor="#2D5E6B"/>
-                            <stop offset="0.49" stopColor="#29A1AB"/>
-                            <stop offset="1" stopColor="#2D5E6B"/>
-                        </linearGradient>
-                        <radialGradient id="gradient_btn_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1"
-                                        gradientTransform="matrix(0 48.763 -168.834 0 168.834 48.763)">
-                            <stop offset="0" stopColor="#871E1E"/>
-                            <stop offset="1" stopColor="#24C2C9"/>
-                        </radialGradient>
-                        <filter colorInterpolationFilters="sRGB" x="-155" y="-85" width="157" height="87" id="filter_btn_3">
-                            <feFlood floodOpacity="0" result="BackgroundImageFix_btn_1"/>
-                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha"/>
-                            <feOffset dx="0" dy="4"/>
-                            <feGaussianBlur stdDeviation="2"/>
-                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0"/>
-                            <feBlend mode="normal" in2="BackgroundImageFix_btn_1" result="Shadow_btn_2"/>
-                            <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_2" result="Shape_btn_3"/>
-                        </filter>
-                        <filter id="blurFilter_btn">
-                            <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
-                        </filter>
-
-
-                        <linearGradient id="gradient_btn_hover_1" gradientUnits="userSpaceOnUse" x1="338.162" y1="48.202" x2="0.162" y2="48.202">
-                            <stop offset="0" stopColor="#4C495C" />
-                            <stop offset="0.49" stopColor="#391FC4" />
-                            <stop offset="1" stopColor="#4C495C" />
-                        </linearGradient>
-                        <radialGradient id="gradient_btn_hover_2" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="matrix(0 29.1 -100.755 0 100.755 29.1)">
-                            <stop offset="0" stopColor="#871E1E" />
-                            <stop offset="1" stopColor="#B9B1E0" />
-                        </radialGradient>
-
-                        <filter colorInterpolationFilters="sRGB" x="-182.065" y="-35.059" width="184.065" height="37.059" id="filter_btn_hover_3">
-                            <feFlood floodOpacity="0" result="BackgroundImageFix_1" />
-                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" in="SourceAlpha" />
-                            <feOffset dx="0" dy="4" />
-                            <feGaussianBlur stdDeviation="2" />
-                            <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.251 0" />
-                            <feBlend mode="normal" in2="BackgroundImageFix_btn_hover_1" result="Shadow_btn_hover_2" />
-                            <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_hover_btn_hover_2" result="Shape_btn_hover_3" />
-                        </filter>
-                    </defs>
                     <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
                 </g>)}
                 <Planet />
                 {page === "game_play"?<animated.g style={translateCam}>
-                    <rect x={-10} y={-10} width={board.length * 100 + 10} height={board.length * 100 + 10}
+                    <rect x={-10} y={-10} width={board.length * 100 + 20} height={board.length * 100 + 20}
                           fill={"#373A40"}/>
                 </animated.g>:""}
             </g>
@@ -542,12 +910,12 @@ export default function Game({mode = "SINGLE", maze = []}){
                             </g>
 
                         }))}
-                        {game.players.map((player,idx) =><g>
-                            <DroidSprite key={player.id}
+                        {game.players.map((player,idx) =><g key={player.id + "droid-sprite"}>
+                            <DroidSprite
                                          x={player.x}
                                          y={player.y}
                                          type={player.type}
-                                         treasure={treasurePlayerCount(board, idx)}
+                                         treasure={pointsGame.filter((tre)=>tre === idx).length}
                                          name={player.name}
                                          color={player.color}
                                          skipMoveActive={activePlayerIndex === idx}
@@ -594,7 +962,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                     useStore.getState().setGamePhase('ROTATE'); // Включаем режим инженерии (вращения)
                     setSkipMoveActive(false)
                 },500)
-            }} cursor={"pointer"}>
+            }}>
                 <Btn scale={0.2} y={0} tx={20} ty={155} x={0} text={"Пропустить ход"} fontSize={60}/>
             </g>)}
             {page === "start_menu"?<g transform={`translate(-150 0)`}>
@@ -602,6 +970,8 @@ export default function Game({mode = "SINGLE", maze = []}){
             </g>:""}
             {page === "game_one"?<GameOne height={size.height} width={size.width} ratio={ratio} />:""}
             {page === "drone_settings"?<DroneParams height={size.height} width={size.width} ratio={ratio} />:""}
+            {count === 0?<Victory/>:""}
+
         </svg>
     </div>
 

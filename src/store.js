@@ -13,13 +13,26 @@ const useStore = create((set) => ({
         };
 
     }),
+    credits:0,
+    pointsGame:[],
     selectLevel:1,
     page:"start_menu",
     gamePhase: "ROLL",
     droidType:[
         {name:"base",color:"#00F0FF",type:"base"},
         {name:"II-88",color:"#00F0FF",type:"II-88"},
-        {name:"CRAB-M",color:"#FFE680",type:"CRAB-M"}
+        {name:"CRAB-M",color:"#FFE680",type:"CRAB-M"},
+        {name:"VCTR-7",color:"#00FF66",type:"VCTR-7"},
+        {name:"ANBS-3",color:"#D080FF",type:"ANBS-3"},
+        {name:"AEGIS-9",color:"#FF3344",type:"AEGIS-9"},
+        {name:"SPTR-5",color:"#3344FF",type:"SPTR-5"},
+        {name:"MGMA-4",color:"#FFDD00",type:"MGMA-4"},
+        {name:"COLT-8",color:"#9900FF",type:"COLT-8"},
+        {name:"WARP-6",color:"#00E6A4",type:"WARP-6"},
+        {name:"FIX-0",color:"#FFBF00",type:"FIX-0"},
+        {name:"MULE-1",color:"#D2691E",type:"MULE-1"},
+        {name:"NEXUS-3",color:"#FFFFFF",type:"NEXUS-3"},
+        {name:"SIREN-1",color:"#FF66CC",type:"SIREN-1"},
     ],
     colors:generateColor(),
     type:"base",
@@ -30,6 +43,7 @@ const useStore = create((set) => ({
         level:1,
         selectLevel:1,
         type:"",
+        page:"start_menu",
         id:"1-1",
         players:[
             { id: 1, name: 'Дроид АЛЬФА', x: 0, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
@@ -59,7 +73,7 @@ const useStore = create((set) => ({
                     starCriteria: {
                         oneStar: "Победа в матче",
                         twoStar: "Собрать не менее 10 сокровищ",
-                        threeStar: "Победа менее чем за 8 ходов"
+                        threeStar: "Победа менее чем за 15 ходов"
                     },
                     rewards: {
                         dataShards: 100,
@@ -218,6 +232,7 @@ const useStore = create((set) => ({
     ],
     pause:false,
     maze:generateMaze(5, 1),
+    setCredits: (el) => set(() => ({ credits: el})),
     setPause: (el) => set(() => ({ pause: el})),
     setMaze: (el) => set(() => ({ maze: el})),
     setGame: (el) => set(() => ({ game: el})),
@@ -235,10 +250,29 @@ const useStore = create((set) => ({
         }
         return p
             })} })),
+    setGamePlayerName:(el)=>set((state) =>  ({ game: {...state.game, players: state.game.players.map((p)=>{
+                if(p.id === 1){
+                    p.name = el;
+                }
+                return p
+            })} })),
     setGamePlayerTreasure:(el, n)=>set((state) =>  ({ game: {...state.game, players: state.game.players.map((p,idx)=>{
                 if(idx === el){
                     p.treasure = n;
                 }
+                return p
+            })} })),
+    setPointsGame: (el) => set((state) => ({ pointsGame:[...state.pointsGame,el]})),
+    removePointsGame: () => set(() => ({pointsGame:[]})),
+    setGamePlayerColor:(el)=>set((state) =>  ({ game: {...state.game, players: state.game.players.map((p)=>{
+                if(p.id === 1){
+                    p.color = el;
+                }
+                return p
+            })} })),
+    setGamePlayerPositionRestart:()=>set((state) =>  ({ game: {...state.game, players: state.game.players.map((p,idx)=>{
+                    p.x = 0;
+                    p.y = 0
                 return p
             })} })),
 

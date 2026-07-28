@@ -1,12 +1,16 @@
 import {useState} from "react";
 import useStore from "../store.js";
-import {generateMaze} from "../action.js";
+import {generateMaze, getRandomInt} from "../action.js";
+import MenuBg from "./MenuBg.jsx";
 
 export default function StartMenu(){
     const [hover, setHover] = useState(false)
     const [id, setId] = useState(0)
     const setGame = useStore((state) => state.setGame);
     const setMaze = useStore((state) => state.setMaze);
+    const droidType = useStore((state) => state.droidType);
+    const type = useStore((state) => state.type);
+    const game = useStore((state) => state.game);
 
     return <svg x={"50%"} width="300"  viewBox="0 0 951 676" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -52,10 +56,8 @@ export default function StartMenu(){
 
 
     <g transform="translate(0.5 0.5)">
-        <path d="M152.276 0L167.616 12.885L344.938 12.885L349.728 6.49173L622.387 6.49173L628.779 12.885L805.158 12.885L818.131 0L905.335 0L950.745 44.1299L950.745 191.057L936.399 206.25L936.399 512.649L950.745 529.724L950.745 635.933L910.918 675.826L39.4895 675.826L0 635.933L0 528.967L13.8435 512.649L13.8435 205.748L0 192.076L0 44.1142L46.2927 0L152.276 0Z" fill="#6A98A8" fillRule="evenodd" strokeWidth="1" stroke="#808080" />
-        <path d="M27.2349 631.626L0 603.27L0 32.5364L32.7864 0L864.69 0L898.058 32.5364L898.058 603.107L869.641 631.626L27.2349 631.626Z" fill="#274957" fillRule="evenodd" strokeWidth="4" stroke="#5DC9D6" transform="translate(26.344 22.1)" />
-        <path d="M0 594.412L0 488.95L15.1631 474.199L15.1631 209.097L0 191.987L0 29.7265L30.6421 0L853.932 0L885.428 29.7265L887.357 191.987L870.12 209.097L870.12 473.345L887.357 489.15L885.428 594.238L861.558 618.783L789.967 618.783L769.967 598.329L675.421 598.329L655.648 618.783L571.883 618.783L563.171 611.031L300.865 611.031L293.353 618.783L236.479 618.783L220.137 602.15L119.784 602.15L102.294 618.783L25.1658 618.783L0 594.412Z" fill="#3A5A69" fillRule="evenodd" transform="translate(31.694 28.521)" />
-        <g  transform="translate(61.551 60.757)">
+        <MenuBg/>
+           <g  transform="translate(61.551 60.757)">
             <g onMouseOver={()=>{
                 setHover(true)
                 setId(1)
@@ -97,14 +99,16 @@ export default function StartMenu(){
                 setGame({
                     base:5,
                     level:1,
-                    type:"game-bot",
+                    type:game.type,
+                    page:"game_one",
                     id:"1-1",
                     selectLevel:1,
                     players:[
-                        { id: 1, name: 'Дроид АЛЬФА', x: 0, y: 0, color: '#00F0FF', stepsLeft: 0,treasure:0,type:"base",isAI: false },
-                        { id: 2, name: 'Механоид ИИ-88', x: 1, y: 0, color: '#FF9900', stepsLeft: 0,treasure:0, type:"II-88", isAI: true },
+                        {...droidType.find((el) => el.type === type),id:1, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: false },
+                        {...droidType.find((el, idx) => idx === getRandomInt(0, droidType.length - 1)),id:2, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: true },
                     ]
                 })
+                useStore.getState().setGameType("game-fight")
                 setMaze(generateMaze(5,1))
             }}
                 onMouseOver={()=>{

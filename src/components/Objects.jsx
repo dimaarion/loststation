@@ -1201,7 +1201,116 @@ export function WrappedText({ text, color = "#FFF", maxChars = 20, x = 0, y = 0,
     );
 }
 
+export const CreditChip = ({ width = 120, height = 150 }) => (
+    <svg
+        width={width}
+        height={height}
+        viewBox="0 0 120 150"
+        xmlns="http://www.w3.org/2000/svg"
+    >
+        <defs>
+            {/* Эффект золотого неонового свечения */}
+            <filter id="creditGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feFlood floodColor="#FFB700" floodOpacity="0.85" result="glowColor" />
+                <feComposite in="glowColor" in2="blur" operator="in" result="softGlow" />
+                <feMerge>
+                    <feMergeNode in="softGlow" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
 
+            {/* Тёмный металл корпуса */}
+            <linearGradient id="chipMetal" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#4A3E2C" />
+                <stop offset="50%" stopColor="#261E14" />
+                <stop offset="100%" stopColor="#140F0A" />
+            </linearGradient>
+
+            {/* Голографический кристалл */}
+            <linearGradient id="crystalCore" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFE066" />
+                <stop offset="50%" stopColor="#FFB700" />
+                <stop offset="100%" stopColor="#CC8800" />
+            </linearGradient>
+        </defs>
+
+        {/* ВЕРХНИЙ HUD */}
+       {/* <g filter="url(#creditGlow)">
+            <path d="M15 18 H5 V32 L15 38" stroke="#FFB700" strokeWidth="1.2" fill="none" opacity="0.8" />
+            <path d="M105 18 H115 V32 L105 38" stroke="#FFB700" strokeWidth="1.2" fill="none" opacity="0.8" />
+
+            <text
+                x="60"
+                y="25"
+                fill="#FFFFFF"
+                fontFamily="monospace"
+                fontSize="10"
+                fontWeight="bold"
+                textAnchor="middle"
+                letterSpacing="1.5"
+            >
+                CREDITS
+            </text>
+
+            <text
+                x="60"
+                y="40"
+                fill="#FFB700"
+                fontFamily="monospace"
+                fontSize="10"
+                fontWeight="bold"
+                textAnchor="middle"
+            >
+                +2500 PTS
+            </text>
+        </g>*/}
+
+        {/* ЦЕНТРАЛЬНАЯ ИКОНКА */}
+        <g transform="translate(0, 15)">
+            <path
+                d="M30 60 L45 45 H75 L90 60 V90 L75 105 H45 L30 90 Z"
+                fill="url(#chipMetal)"
+                stroke="#140F0A"
+                strokeWidth="2.5"
+            />
+
+            <path
+                d="M38 63 L48 53 H72 L82 63 V87 L72 97 H48 L38 87 Z"
+                fill="#140F0A"
+                stroke="#FFB700"
+                strokeWidth="1"
+                opacity="0.5"
+            />
+
+            <g filter="url(#creditGlow)">
+                <path
+                    d="M60 56 L74 75 L60 94 L46 75 Z"
+                    fill="url(#crystalCore)"
+                    stroke="#FFFFFF"
+                    strokeWidth="1"
+                />
+
+                <path
+                    d="M64 70 C63 68, 61 67, 58 67 C55 67, 53 69, 53 75 C53 81, 55 83, 58 83 C61 83, 63 82, 64 80"
+                    stroke="#140F0A"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    fill="none"
+                />
+                <line x1="51" y1="75" x2="65" y2="75" stroke="#140F0A" strokeWidth="1.5" />
+
+                <line x1="60" y1="56" x2="60" y2="94" stroke="#FFFFFF" strokeWidth="1" opacity="0.6" />
+                <circle cx="60" cy="56" r="1.5" fill="#FFFFFF" />
+                <circle cx="60" cy="94" r="1.5" fill="#FFFFFF" />
+            </g>
+
+          {/*  <g stroke="#FFB700" strokeLinecap="round" fill="none" filter="url(#creditGlow)">
+                <path d="M42 112 Q60 118, 78 112" strokeWidth="1.5" opacity="0.8" />
+                <path d="M48 118 Q60 123, 72 118" strokeWidth="1" opacity="0.4" />
+            </g>*/}
+        </g>
+    </svg>)
 
 
 const styles = {

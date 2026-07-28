@@ -41,6 +41,7 @@ export default function DroneParams({height, width, ratio}){
                             return el
                         })
                     )
+                    useStore.getState().setGamePlayerName(e.target.value)
                 }
 
 
@@ -60,6 +61,7 @@ export default function DroneParams({height, width, ratio}){
                         return el
                     })
                 )
+                useStore.getState().setGamePlayerColor(e)
             }}/>
         </g>
             <g onPointerDown={()=>{

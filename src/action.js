@@ -302,3 +302,7 @@ export function treasurePlayerCount(board, idx){
     return board.map((el)=>el.filter((p)=> p.playerId === idx)).filter((f)=>f.length > 0).length
 }
 
+export function getMaxResult(arr) {
+    if (!arr || arr.length === 0) return null; // защита от пустого массива
+    return Math.max(...arr);
+}
