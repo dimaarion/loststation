@@ -972,6 +972,14 @@ export default function Game({mode = "SINGLE", maze = []}){
             {page === "drone_settings"?<DroneParams height={size.height} width={size.width} ratio={ratio} />:""}
             {count === 0?<Victory/>:""}
 
+            <g>
+                <g>
+                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill={"#2C6C78"} fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)" />
+                </g>
+
+                <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78" fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)" />
+            </g>
+
         </svg>
     </div>
 

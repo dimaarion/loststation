@@ -4,7 +4,7 @@ import {SpaceDroidToken} from "../components/Players.jsx";
 import useStore from "../store.js";
 import BattleBotsSettings from "./BattleBotsSettings.jsx";
 import {generateMaze, getRandomInt} from "../action.js";
-import {WrappedText} from "../components/Objects.jsx";
+import {CreditChip, WrappedText} from "../components/Objects.jsx";
 
 
 export default function GameOne({width, height, ratio}){
@@ -17,6 +17,8 @@ export default function GameOne({width, height, ratio}){
     const quests = useStore((state) => state.quests);
     const setMaze = useStore((state) => state.setMaze);
     const [fight, setFight] = useState(game.type === "game-bot");
+    const credits = useStore((state) => state.credits);
+
     return <g>
         <defs>
             <linearGradient id="bg_game_one" gradientUnits="userSpaceOnUse" x1="30%" y1="0" x2="90%" y2="100%">
@@ -159,6 +161,13 @@ export default function GameOne({width, height, ratio}){
         {battleSettings?<g>
             <BattleBotsSettings setDown={setBattleSettings} />
         </g>:""}
+        <g transform={`translate(${15} ${-10})`}>
+            <g>
+                <CreditChip width={45} height={45}  />
+                <text fill={"#FFB700"} fontSize={15} filter={"url(#filter_btn_3)"} transform={`translate(${35} ${32})`}>{credits}</text>
+            </g>
+
+        </g>
     </g>
 }
 
