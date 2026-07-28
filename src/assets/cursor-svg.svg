@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Основная форма курсора -->
+  <path d="M4 4L28 16L12 20L4 4Z" fill="#00D4FF" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+  
+  <!-- Внутренняя деталь для объема -->
+  <path d="M12 16L18 18L12 18L12 16Z" fill="#005A70"/>
+  
+  <!-- Неоновое свечение (фильтр можно добавить в CSS) -->
+  <defs>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+</svg>
