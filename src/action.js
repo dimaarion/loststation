@@ -1,6 +1,8 @@
+
 export const TILE_TYPES = ['straight', 'corner', 't_shape'];
 
 export const DROID_TYPE = ["base","II-88","CRAB-M","II-88","II-88","II-88"]
+
 
 export function routable(n) {
     return Math.PI / 180 * n;
@@ -16,32 +18,54 @@ export function getRandomInt(min, max) {
  * Генерирует массив сокровищ для уровня
  * @param {number} count - сколько сокровищ нужно создать
  * @param {number} gridSize - размер сетки
+ * @param fixedTreasures
  * @returns {Array<{x: number, y: number, type: string}>}
  */
-const generateTreasuresList = (count, gridSize) => {
+const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
     const treasures = [];
-    const types = ['energy_core', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter'];
+    const types = ['energy_core', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter', 'leg-data'];
 
-    // ГАРАНТИЯ: Если count меньше 1, принудительно устанавливаем минимум 1 сокровище
+    // 1. Проверки на размеры сетки
     const finalCount = Math.max(1, count);
-
-    // Дополнительная проверка на случай слишком маленькой сетки (чтобы цикл не стал бесконечным)
     const maxAvailableCells = (gridSize - 2) * (gridSize - 2);
     const safeCount = Math.min(finalCount, maxAvailableCells);
 
-    while (treasures.length < safeCount) {
-        // Генерируем случайные координаты (исключая углы 0,0 и крайние точки, где обычно стартуют игроки)
-        const x = Math.floor(Math.random() * (gridSize - 2)) + 1;
-        const y = Math.floor(Math.random() * (gridSize - 2)) + 1;
+    // Вспомогательная функция для безопасного добавления уникальной позиции
+    const addTreasure = (type) => {
+        let added = false;
+        let attempts = 0;
 
-        // Проверяем, нет ли уже сокровища на этих координатах
-        const exists = treasures.some(t => t.x === x && t.y === y);
+        // Пытаемся найти свободную клетку (ограничиваем попытки на случай заполнения)
+        while (!added && attempts < 100) {
+            attempts++;
+            const x = Math.floor(Math.random() * (gridSize - 2)) + 1;
+            const y = Math.floor(Math.random() * (gridSize - 2)) + 1;
 
-        if (!exists) {
-            const randomType = types[Math.floor(Math.random() * types.length)];
-            treasures.push({ x, y, type: randomType });
+            const exists = treasures.some(t => t.x === x && t.y === y);
+            if (!exists) {
+                treasures.push({ x, y, type });
+                added = true;
+            }
         }
+    };
+
+    // 2. ГАРАНТИРОВАННЫЙ СПАВН ОБЯЗАТЕЛЬНЫХ СОКРОВИЩ
+    // Проходим по объекту fixedTreasures (например, { 'leg-data': 10, 'energy_core': 2 })
+    Object.entries(fixedTreasures).forEach(([type, requiredAmount]) => {
+        for (let i = 0; i < requiredAmount; i++) {
+            if (treasures.length < safeCount) {
+                addTreasure(type);
+            }
+        }
+    });
+
+    // 3. РАНДОМНЫЙ СПАВН ОСТАВШЕГОСЯ КОЛИЧЕСТВА
+    // Заполняем свободные слоты случайными типами, пока не достигнем safeCount
+    while (treasures.length < safeCount) {
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        addTreasure(randomType);
     }
+
     return treasures;
 };
 
@@ -49,13 +73,16 @@ const generateTreasuresList = (count, gridSize) => {
  * Главная функция генерации лабиринта
  * @param {number} gridSize - размер сетки (5, 7, 9 и т.д.)
  * @param {number} level - текущий уровень (влияет на количество сокровищ)
+ * @param id
+ * @param fixedTreasures
  * @returns {Array<Array<Object>>} Двумерный массив плиток лабиринта
  */
-export const generateMaze = (gridSize, level) => {
+export const generateMaze = (gridSize, level,id = "-1",fixedTreasures = {}) => {
+
     // Количество сокровищ растет с уровнем
 
     const treasuresCount = level * 2 + 1;
-    const treasuresList = generateTreasuresList(treasuresCount, gridSize);
+    const treasuresList = generateTreasuresList(treasuresCount, gridSize,fixedTreasures);
 
     // Пропорции плиток на станции: ~40% углов, ~40% прямых, ~20% Т-образных перекрестков
     const getWeightedRandomType = () => {
@@ -77,6 +104,14 @@ export const generateMaze = (gridSize, level) => {
             // будут Т-образными или углами, чтобы игроки не оказались заперты в прямой тупик
             if ((x === 0 && y === 0) || (x === gridSize-1 && y === gridSize-1)) {
                 type = 't_shape';
+            }
+            if(id === "1-1"){
+                if ((x === 4 && y === 5) || (x === 6 && y === 5) || (x === 5 && y === 4) || (x === 5 && y === 6)) {
+                    type = 'blocking';
+                }
+                if (x === 5 && y === 5) {
+                    type = 'gateway';
+                }
             }
 
             // 2. Случайный начальный поворот (0, 90, 180, 270 градусов)
@@ -109,7 +144,9 @@ export const generateMaze = (gridSize, level) => {
 const TILE_EXITS = {
     straight: [true, false, true, false],  // Прямая (проход Вверх-Вниз)
     corner:   [false, true, true, false],  // Угол (проход Вниз-Вправо)
-    t_shape:  [false, true, true, true]    // Т-образная (Вверх-Вправо-Влево)
+    t_shape:  [false, true, true, true],
+    blocking:  [true, false, true, false],
+    gateway:  [true, true, true, true],// Т-образная (Вверх-Вправо-Влево)
 };
 
 // Получить выходы с учетом текущего поворота плитки

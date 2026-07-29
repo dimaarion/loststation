@@ -1,10 +1,9 @@
 import {
     AlienArtifact,
-    DataPad,
     EnergyCore,
     GravityBoosterIcon,
-    Keycard, PlasmaCutterIcon,
-    QuantumWrenchIcon,
+    PlasmaCutterIcon,
+    QuantumWrenchIcon, SpaceTileLogData,
     VoidRadarIcon
 } from "./Objects.jsx";
 
@@ -23,6 +22,8 @@ export default function Treasures({treasure}){
              return <VoidRadarIcon/>
          case 'Plasma Cutter':
              return <PlasmaCutterIcon/>
+         case 'leg-data':
+             return <SpaceTileLogData/>
         default:
             return ""
     }

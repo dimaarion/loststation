@@ -1,7 +1,7 @@
 import MenuBg from "./MenuBg.jsx";
 import useStore from "../store.js";
-import {useMemo, useState} from "react";
-import {generateMaze, getMaxResult} from "../action.js";
+import {useEffect, useMemo, useState} from "react";
+import {generateMaze} from "../action.js";
 import Btn from "./Btn.jsx";
 
 export default function Victory(){
@@ -53,6 +53,10 @@ export default function Victory(){
         })
         return p.sort((a, b) => b.treasure - a.treasure);
     },[game.players, pointsGame])
+
+    useEffect(() => {
+        useStore.getState().setPause(true)
+    }, []);
 
     return<g onTouchStart={handleTouchStart}
              onTouchMove={handleTouchMove} onWheel={handleWheel} transform={`translate(${size.width / ratio / 2 - 142} ${size.height / ratio / 2 - 102})`}>

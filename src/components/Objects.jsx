@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect, useId} from 'react';
 import {splitArray} from "../action.js";
 
 export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
@@ -1311,6 +1311,120 @@ export const CreditChip = ({ width = 120, height = 150 }) => (
             </g>*/}
         </g>
     </svg>)
+
+
+
+
+export const SpaceTileLogData = (props) => {
+    const baseId = useId();
+    const glowId = `${baseId}-dataGlow`;
+    const blinkId = `${baseId}-activityBlink`;
+
+    return (
+        <svg
+            width="100"
+            height="100"
+            viewBox="0 0 100 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            {...props}
+        >
+            <defs>
+                <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+                    <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+
+                <filter id={blinkId}>
+                    <feColorMatrix
+                        type="matrix"
+                        values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"
+                    >
+                        <animate
+                            attributeName="values"
+                            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0;
+                      1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.3 0;
+                      1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"
+                            dur="1.5s"
+                            repeatCount="indefinite"
+                        />
+                    </feColorMatrix>
+                </filter>
+            </defs>
+
+            <rect width="100" height="100" fill="none" />
+
+            <g transform="translate(50, 50)">
+                <path
+                    d="M-20 -12C-22 -12 -24 -10 -24 -8V8C-24 10 -22 12 -20 12H12C14 12 16 10 16 8V-8C16 -10 14 -12 12 -12H-20Z"
+                    fill="#2A303C"
+                    stroke="#0D1117"
+                    strokeWidth="2"
+                />
+
+                <path
+                    d="M-20 -8C-21 -8 -22 -7 -22 -6V6C-22 7 -21 8 -20 8H12C13 8 14 7 14 6V-6C14 -7 13 -8 12 -8H-20Z"
+                    fill="#1A1F26"
+                    stroke="#0D1117"
+                    strokeWidth="1"
+                />
+
+                <path
+                    d="M-18 -5V5M-15 -5V5M-12 -5V5"
+                    stroke="#0D1117"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                />
+
+                <rect
+                    x="16"
+                    y="-6"
+                    width="6"
+                    height="12"
+                    rx="1"
+                    fill="#4A5568"
+                    stroke="#0D1117"
+                    strokeWidth="1"
+                />
+                <path d="M19 -3V3M21 -3V3" stroke="#0D1117" strokeWidth="1" />
+            </g>
+
+            <g transform="translate(50, 50)" filter={`url(#${glowId})`}>
+                <path
+                    d="M-6 -4H6M-6 0H6M-6 4H2"
+                    stroke="#00F0FF"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                />
+
+                <circle
+                    cx="8"
+                    cy="4"
+                    r="2.5"
+                    fill="#00F0FF"
+                    filter={`url(#${blinkId})`}
+                />
+            </g>
+
+            <g transform="translate(30, 68) scale(0.6)" opacity="0.7">
+                <text
+                    x="0"
+                    y="0"
+                    fontFamily="Verdana, Geneva, sans-serif"
+                    fontSize="8"
+                    fill="#8B949E"
+                    fontWeight="bold"
+                >
+                    LOG_DATA
+                </text>
+            </g>
+        </svg>
+    );
+};
+
 
 
 const styles = {

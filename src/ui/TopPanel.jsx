@@ -5,8 +5,8 @@ import {CreditChip} from "../components/Objects.jsx";
 
 export default function TopPanel({players, count = 0, countTotal = 0, currentIndex = 0}){
         const [active, setActive] = useState(false);
-         const size = useStore((state) => state.size);
-         const ratio = useStore((state) => state.ratio);
+
+         const message = useStore((state) => state.message);
          const game = useStore((state) => state.game);
          const pause = useStore((state) => state.pause);
          const credits = useStore((state) => state.credits);
@@ -14,6 +14,7 @@ export default function TopPanel({players, count = 0, countTotal = 0, currentInd
         <LeftMenu active={active} />
         <rect width={"100%"} height={50} opacity={0.5} fill={"#152C3A"}/>
         <text fontSize={15} x={"50%"} transform={'translate(-8 0)'} y={15} fill={"#a7cde4"}> {count} / {countTotal}</text>
+        <text fontSize={15} x={"50%"} transform={`translate(${-message.length * 2.5} 0)`} y={35} fill={"#FFB700"}>{message}</text>
         <g transform={`translate(15 16)`}>
             <g  onPointerDown={()=>{
         setActive(!active)

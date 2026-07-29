@@ -30,12 +30,14 @@ export default function Game({mode = "SINGLE", maze = []}){
     const consecutiveSkipsRef = useRef(0);
     const isBotActingRef = useRef(false);
     const playerRotateRef = useRef(false);
+    const camDirectionRef = useRef(null);
     const [pathsData, setPathsData] = useState({});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
     const [droidCube, setDroidCube] = useState(0);
+    const [moveCamera, setMoveCamera] = useState({x:0,y:0});
     const [skipMoveActive, setSkipMoveActive] = useState(false);
     const gamePhase = useStore((state) => state.gamePhase);
     const stars = useStore((state) => state.stars);
@@ -49,14 +51,22 @@ export default function Game({mode = "SINGLE", maze = []}){
     const pause = useStore((state) => state.pause);
     const pointsGame = useStore((state) => state.pointsGame);
     const setPointsGame = useStore((state)=>state.setPointsGame)
+    const numberMoves = useStore((state) => state.numberMoves);
 
     useEffect(()=>{
         (()=>setBoard(maze))()
     },[maze])
 
-    useEffect(()=>{
-
-    },[pointsGame])
+    useEffect(() => {
+        if(gamePhase === "ROLL"){
+            useStore.getState().setMessage("Ходит " + game.players[activePlayerIndex].type)
+        }else {
+            useStore.getState().setMessage("Ходов сделано " + numberMoves)
+        }
+       
+        
+    }, [activePlayerIndex, game.players, gamePhase, numberMoves]);
+    
 
 
     const { offsetX, offsetY } = getCameraOffset(
@@ -70,6 +80,7 @@ export default function Game({mode = "SINGLE", maze = []}){
         const player = game.players[activePlayerIndex];
         // Находим все пути вдоль стен
         const paths = findAvailablePaths(player.x, player.y, result, board);
+
         setPathsData(paths);
         setTimeout(() => {
             useStore.getState().setGamePhase("MOVE");
@@ -78,6 +89,7 @@ export default function Game({mode = "SINGLE", maze = []}){
     },[game.players, activePlayerIndex, board]);
 
     const animateRoute = useCallback((targetKey) => {
+        setMoveCamera((item)=>({...item,x:0,y:0}))
         if (isMovingAnimation) return;
 
         const route = pathsData[targetKey]; // Например: [[0,0], [1,0], [1,1]] или [[0,0]] (если клик по себе)
@@ -130,8 +142,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 )
             );
 
-
-
+           if(activePlayerIndex === 0)useStore.getState().setNumberMoves();
             currentStep++;
 
             // Если прошли весь маршрут до конца
@@ -186,6 +197,8 @@ export default function Game({mode = "SINGLE", maze = []}){
 
                 // 5. Возвращаем игру в фазу броска кубика, но уже для нового игрока
                 useStore.getState().setGamePhase('ROLL');
+
+
             },1000)
 
         }
@@ -807,8 +820,35 @@ export default function Game({mode = "SINGLE", maze = []}){
 
 
     useEffect(() => {
-        console.log(game.players)
+        let animId;
+
+        const trackPosition = () => {
+            switch (camDirectionRef.current) {
+                case "left":
+                    setMoveCamera((item)=>({...item,x:item.x+=3,y:item.y}))
+                    break;
+                case "right":
+                    setMoveCamera((item)=>({...item,x:item.x-=3,y:item.y}))
+                    break;
+                case "top":
+                    setMoveCamera((item)=>({...item,x:item.x,y:item.y+=3}))
+                    break;
+                case "down":
+                    setMoveCamera((item)=>({...item,x:item.x,y:item.y-=3}))
+                    break;
+                default:
+
+            }
+
+
+            animId = requestAnimationFrame(trackPosition);
+        };
+
+        animId = requestAnimationFrame(trackPosition);
+        return () => cancelAnimationFrame(animId);
     }, []);
+
+
 
     return <div>
         <svg xmlns="http://www.w3.org/2000/svg" style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
@@ -873,59 +913,68 @@ export default function Game({mode = "SINGLE", maze = []}){
                     <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
                 </g>)}
                 <Planet />
-                {page === "game_play"?<animated.g style={translateCam}>
+                {page === "game_play"?<g style={
+                        {...styles.cam,
+                            ...(moveCamera.x === 0 && moveCamera.y === 0?{transition:"0.3s"}:{})
+                        }} transform={`translate(${moveCamera.x} ${moveCamera.y})`}><animated.g style={translateCam}>
                     <rect x={-10} y={-10} width={board.length * 100 + 20} height={board.length * 100 + 20}
                           fill={"#373A40"}/>
-                </animated.g>:""}
+                </animated.g></g>:""}
             </g>
             {page === "game_play"? <svg>
-                <animated.g style={translateCam}>
-                    <g>
-                        {board.map((item) => item.filter((f)=>pointInRect({x:f.x * 100,y:f.y * 100},{
-                            x: (game.players[activePlayerIndex].x * 100) - size.width / 2,
-                            y:(game.players[activePlayerIndex].y * 100) - size.height / 2,
-                            width:size.width,
-                            height:size.height,
-                        })).map((el) => {
-                            const tileKey = `${el.x}-${el.y}`;
-                            const isHighlight = gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
-                            return <g onClick={() => {
-                                if (game.players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
-                                if (isHighlight) animateRoute(tileKey);
-                            }} key={`${el.x}-${el.y}`}>
-                                <SpaseBase player={game.players[activePlayerIndex]} treasure={el.treasure} type={el.type}
-                                           translate={{x: el.x * 100, y: el.y * 100}}
-                                           rotation={el.rotation} onClick={handleTileRotate}/>
-                                {isHighlight && (
-                                    <rect
-                                        x={el.x * 100}
-                                        y={el.y * 100}
-                                        width="100" height="100"
-                                        fill="#00F0FF" opacity="0.15"
-                                        stroke="#00F0FF" strokeWidth="3"
-                                        style={{pointerEvents: 'none'}}
-                                    />
-                                )}
+                <g style={
+                    {...styles.cam,
+                        ...(moveCamera.x === 0 && moveCamera.y === 0?{transition:"0.3s"}:{})
+                }} transform={`translate(${moveCamera.x} ${moveCamera.y})`}>
+                    <animated.g style={translateCam}>
+                        <g>
+                            {board.map((item) => item.filter((f)=>pointInRect({x:f.x * 100,y:f.y * 100},{
+                                x: (game.players[activePlayerIndex].x * 100) - size.width / 2,
+                                y:(game.players[activePlayerIndex].y * 100) - size.height / 2,
+                                width:size.width,
+                                height:size.height,
+                            })).map((el) => {
+                                const tileKey = `${el.x}-${el.y}`;
+                                const isHighlight = gamePhase === 'MOVE' && !!pathsData[tileKey] && !isMovingAnimation;
+                                return <g onClick={() => {
+                                    if (game.players[activePlayerIndex].isAI) return; // ИИ ходит сам, клики заблокированы
+                                    if (isHighlight) animateRoute(tileKey);
+                                }} key={`${el.x}-${el.y}`}>
+                                    <SpaseBase player={game.players[activePlayerIndex]} treasure={el.treasure} type={el.type}
+                                               translate={{x: el.x * 100, y: el.y * 100}}
+                                               rotation={el.rotation} onClick={handleTileRotate}/>
+                                    {isHighlight && (
+                                        <rect
+                                            x={el.x * 100}
+                                            y={el.y * 100}
+                                            width="100" height="100"
+                                            fill="#00F0FF" opacity="0.15"
+                                            stroke="#00F0FF" strokeWidth="3"
+                                            style={{pointerEvents: 'none'}}
+                                        />
+                                    )}
 
-                            </g>
+                                </g>
 
-                        }))}
-                        {game.players.map((player,idx) =><g key={player.id + "droid-sprite"}>
-                            <DroidSprite
-                                         x={player.x}
-                                         y={player.y}
-                                         type={player.type}
-                                         treasure={pointsGame.filter((tre)=>tre === idx).length}
-                                         name={player.name}
-                                         color={player.color}
-                                         skipMoveActive={activePlayerIndex === idx}
-                            />
+                            }))}
+                            {game.players.map((player,idx) =><g key={player.id + "droid-sprite"}>
+                                <DroidSprite
+                                    x={player.x}
+                                    y={player.y}
+                                    type={player.type}
+                                    treasure={pointsGame.filter((tre)=>tre === idx).length}
+                                    name={player.name}
+                                    color={player.color}
+                                    skipMoveActive={activePlayerIndex === idx}
+                                />
 
 
 
-                                    </g>)}
-                    </g>
-                </animated.g>
+                            </g>)}
+                        </g>
+                    </animated.g>
+                </g>
+
 
             </svg>:""}
             {page === "game_play"?<TopPanel droidCube={droidCube} currentIndex={activePlayerIndex} countTotal={countTotal} count={count} players={game.players}/>:""}
@@ -972,13 +1021,40 @@ export default function Game({mode = "SINGLE", maze = []}){
             {page === "drone_settings"?<DroneParams height={size.height} width={size.width} ratio={ratio} />:""}
             {count === 0?<Victory/>:""}
 
-            <g>
-                <g>
-                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill={"#2C6C78"} fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)" />
+            {page === "game_play" && !pause?<g>
+                <g onPointerDown={()=>{
+                    camDirectionRef.current = "right"
+                }} onPointerUp={()=>{
+                    camDirectionRef.current = null
+                }}  transform={`translate(${size.width / ratio - 19} ${size.height / ratio / 2 - 15}) scale(0.3)`}>
+                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill={"#2C6C78"}
+                          fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)"/>
                 </g>
-
-                <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78" fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)" />
-            </g>
+                <g onPointerDown={()=>{
+                    camDirectionRef.current = "left"
+                }} onPointerUp={()=>{
+                    camDirectionRef.current = null
+                }} transform={`translate(0 ${size.height / ratio / 2 - 15}) scale(0.3) rotate(-180 30 30)`}>
+                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78"
+                          fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)"/>
+                </g>
+                <g onPointerDown={()=>{
+                    camDirectionRef.current = "top"
+                }} onPointerUp={()=>{
+                    camDirectionRef.current = null
+                }} transform={`translate(${size.width / ratio / 2 - 15} ${50}) scale(0.3) rotate(-90 30 30)`}>
+                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78"
+                          fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)"/>
+                </g>
+                <g onPointerDown={()=>{
+                    camDirectionRef.current = "down"
+                }} onPointerUp={()=>{
+                    camDirectionRef.current = null
+                }} transform={`translate(${size.width / ratio / 2 - 15} ${size.height / ratio - 19}) scale(0.3) rotate(90 30 30)`}>
+                    <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78"
+                          fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)"/>
+                </g>
+            </g>:""}
 
         </svg>
     </div>
@@ -992,5 +1068,11 @@ const styles = {
     },
     skip_move:{
         transition: '0.5s',
+    },
+    arrow:{
+        transition:"0.2s"
+    },
+    cam:{
+
     }
 }

@@ -11,6 +11,7 @@ export default function StartMenu(){
     const droidType = useStore((state) => state.droidType);
     const type = useStore((state) => state.type);
     const game = useStore((state) => state.game);
+    const selectLevel = useStore((state) => state.selectLevel);
 
     return <svg x={"50%"} width="300"  viewBox="0 0 951 676" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -101,15 +102,15 @@ export default function StartMenu(){
                     level:1,
                     type:game.type,
                     page:"game_one",
-                    id:"1-1",
-                    selectLevel:1,
+                    id:"0",
+                    selectLevel:selectLevel,
                     players:[
                         {...droidType.find((el) => el.type === type),id:1, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: false },
                         {...droidType.find((el, idx) => idx === getRandomInt(0, droidType.length - 1)),id:2, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: true },
                     ]
                 })
                 useStore.getState().setGameType("game-fight")
-                setMaze(generateMaze(5,1))
+                setMaze(generateMaze(5,1,game.id))
             }}
                 onMouseOver={()=>{
                 setHover(true)
