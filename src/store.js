@@ -67,13 +67,13 @@ const useStore = create((set) => ({
                 {
                     id: "1-1",
                     title: "Разведка Дока",
-                    gridSize: 5,
-                    maxTurns: 15,
+                    gridSize: 10,
+                    maxTurns: 20,
                     lockTurn: 12,
                     scanRadius: 3,
                     botBehavior: "passive",
                     hazards: [],
-                    fixedTreasures: { 'leg-data': 5 },
+                    fixedTreasures: { 'leg-data': 10 },
                     objectives: { main: { text: "Собрать 5 логов данных", type: "COLLECT_AMOUNT", target: 5 } },
                     rewards: { completionCredits: 200, creditPerTreasure: 10, turnSpeedBonus: 15 }
                 },

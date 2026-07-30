@@ -18,6 +18,7 @@ import Btn from "./ui/Btn.jsx";
 import DroneParams from "./ui/DroneParams.jsx";
 import {pointInRect} from "./сollisions.js";
 import Victory from "./ui/Victory.jsx";
+import MessageLevel from "./ui/MessageLevel.jsx";
 const MODES = {
     SINGLE: 'SINGLE',
     SPLIT: 'SPLIT',
@@ -59,9 +60,9 @@ export default function Game({mode = "SINGLE", maze = []}){
 
     useEffect(() => {
         if(gamePhase === "ROLL"){
-            useStore.getState().setMessage("Ходит " + game.players[activePlayerIndex].type)
+            useStore.getState().setMessage("Ходит: " + game.players[activePlayerIndex].type)
         }else {
-            useStore.getState().setMessage("Ходов сделано " + numberMoves)
+            useStore.getState().setMessage("Ходов сделано: " + numberMoves)
         }
        
         
@@ -1054,6 +1055,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                     <path style={styles.arrow} className={"box"} d="M30.5 0L61 53L0 53L30.5 0Z" fill="#2C6C78"
                           fillRule="evenodd" strokeWidth="4" stroke="#A7EAF2" transform="matrix(0 1 -1 0 55 2)"/>
                 </g>
+                <MessageLevel />
             </g>:""}
 
         </svg>
