@@ -3,7 +3,7 @@ import {useSpring, animated} from "@react-spring/web";
 import {RotateIcon} from "./Objects.jsx";
 import useStore from "../store.js";
 
-export default function SpaceTileStraight({ angle = 0, translate = {x:0,y:0}, treasure = null, onClick, player }){
+export default function SpaceTileStraight({tileRotate, angle = 0, translate = {x:0,y:0}, treasure = null, onClick, player }){
     const gamePhase = useStore((state) => state.gamePhase);
     const { rotation } = useSpring({
         rotation: angle, // Сюда передаем 0, 90, 180 или 270 градусов из стейта
@@ -12,14 +12,6 @@ export default function SpaceTileStraight({ angle = 0, translate = {x:0,y:0}, tr
         }
     });
 
-    const  tileRotate  = useSpring({
-        from:{transform:"rotate(0deg)"},
-        to:[{transform:"rotate(360deg)"}],
-        loop:true,
-        config: {
-            duration:5000
-        }
-    });
     const distance = Math.abs(player.x - translate.x / 100) + Math.abs(player.y - translate.y / 100);
 
     return (

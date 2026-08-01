@@ -171,55 +171,6 @@ const canMoveBetween = (tileA, tileB, dir) => {
     return exitsA[dir] && exitsB[oppositeDir];
 };
 
-/*export const findAvailableMoves = (startX, startY, stepsLeft, board) => {
-    const gridSize = board.length;
-    const visited = new Set(); // Посещенные плитки
-    const queue = [[startX, startY, 0]]; // Очередь: [x, y, currentDist]
-    const availableTiles = []; // Итог: доступные для хода плитки
-
-    // Смещение по индексам: 0: Вверх, 1: Вправо, 2: Вниз, 3: Влево
-    const dX = [0, 1, 0, -1];
-    const dY = [-1, 0, 1, 0];
-
-    visited.add(`${startX}-${startY}`);
-
-    while (queue.length > 0) {
-        const [x, y, dist] = queue.shift();
-
-        // Если это не стартовая точка, добавляем её в доступные для хода
-        if (dist > 0) {
-            availableTiles.push(`${x}-${y}`);
-        }
-
-        // Если лимит шагов кубика исчерпан, дальше не идем
-        if (dist === stepsLeft) continue;
-
-        const currentTile = board[y][x];
-
-        // Проверяем все 4 направления вокруг текущей плитки
-        for (let i = 0; i < 4; i++) {
-            const nextX = x + dX[i];
-            const nextY = y + dY[i];
-            const key = `${nextX}-${nextY}`;
-
-            // Проверка границ сетки
-            if (nextX >= 0 && nextX < gridSize && nextY >= 0 && nextY < gridSize) {
-                if (!visited.has(key)) {
-                    const nextTile = board[nextY][nextX];
-
-                    // КРИТИЧЕСКАЯ ПРОВЕРКА: открыты ли шлюзы между ними?
-                    if (canMoveBetween(currentTile, nextTile, i)) {
-                        visited.add(key);
-                        queue.push([nextX, nextY, dist + 1]);
-                    }
-                }
-            }
-        }
-    }
-
-    return availableTiles; // Массив строк вида ["1-0", "1-1", "2-1"]
-};*/
-
 export const findAvailablePaths = (startX, startY, stepsLeft, board) => {
     const gridSize = board.length;
     const queue = [[startX, startY, 0, []]]; // Добавляем массив для текущего пути
@@ -342,4 +293,53 @@ export function treasurePlayerCount(board, idx){
 export function getMaxResult(arr) {
     if (!arr || arr.length === 0) return null; // защита от пустого массива
     return Math.max(...arr);
+}
+
+// Извлечение translate(x,y)
+export function getTranslate(transform) {
+    const match = transform.match(/translate\(([^)]+)\)/);
+    if (!match) return null;
+    const [x, y] = match[1].split(/[\s,]+/).map(Number);
+    return { x, y: y ?? 0 };
+}
+
+// Извлечение rotate(angle[,cx,cy])
+export function getRotate(transform) {
+    const match = transform.match(/rotate\(([^)]+)\)/);
+    if (!match) return null;
+    const parts = match[1].split(/[\s,]+/).map(Number);
+    const [angle, cx, cy] = parts;
+    return { angle, cx: cx ?? 0, cy: cy ?? 0 };
+}
+
+// Извлечение scale(sx[,sy])
+export function getScale(transform) {
+    const match = transform.match(/scale\(([^)]+)\)/);
+    if (!match) return null;
+    const [sx, sy] = match[1].split(/[\s,]+/).map(Number);
+    return { sx, sy: sy ?? sx };
+}
+
+export function getPlayersPoint(game, activePlayerIndex, player){
+    return game.players.filter((f)=>f.x === player.x && f.y === player.y).length
+}
+
+export function getQuestTargetType(quests,game){
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].fixedTreasures.type;
+}
+
+export function getCompletionCredits(quests,game){
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].rewards.completionCredits;
+}
+
+export function getCreditPerTreasure(quests,game){
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].rewards.creditPerTreasure;
+}
+
+export function getTurnSpeedBonus(quests,game){
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].rewards.turnSpeedBonus;
+}
+
+export function getObjectivesTarget(quests,game){
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].objectives.main.target;
 }

@@ -9,14 +9,12 @@ import {CreditChip, WrappedText} from "../components/Objects.jsx";
 
 export default function GameOne({width, height, ratio}){
     const [step, setStep] = useState(0)
-    const [passing, setPassing] = useState(false)
     const [battleSettings, setBattleSettings] = useState(false)
     const droidType = useStore((state) => state.droidType);
     const type = useStore((state) => state.type);
     const game = useStore((state) => state.game);
     const quests = useStore((state) => state.quests);
     const setMaze = useStore((state) => state.setMaze);
-    const [fight, setFight] = useState(game.type === "game-bot");
     const credits = useStore((state) => state.credits);
     const selectLevel = useStore((state) => state.selectLevel);
     const levelId = useStore((state) => state.levelId);
@@ -94,8 +92,6 @@ export default function GameOne({width, height, ratio}){
             </g>
         </svg>
         <svg onPointerDown={()=>{
-            setFight(true)
-            setPassing(false)
             useStore.getState().setGame({
                 base:game.base,
                 level:game.level,
@@ -112,8 +108,6 @@ export default function GameOne({width, height, ratio}){
             <Btn  active={game.type === "game-fight"} x={0} y={0} scale={0.2} text={"СХВАТКА"} tx={90} ty={160} fontSize={66} />
         </svg>
         <svg onPointerDown={()=>{
-            setPassing(true)
-            setFight(false)
             useStore.getState().setGame({
                 base:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === levelId).gridSize,
                 level:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === levelId).maxTurns,

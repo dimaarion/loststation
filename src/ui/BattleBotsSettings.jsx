@@ -1,5 +1,6 @@
 import useStore from "../store.js";
 import Btn from "./Btn.jsx";
+import {useEffect} from "react";
 
 
 export default function BattleBotsSettings({setDown}){
@@ -11,7 +12,9 @@ export default function BattleBotsSettings({setDown}){
     const base = game.base
     const baseSize = base  + " x " + base
 
-
+    useEffect(() => {
+        console.log(game.players)
+    }, []);
     return <g>
         <defs>
             <linearGradient id="gradient_bat_1" gradientUnits="userSpaceOnUse" x1="535.214" y1="43.671" x2="0.197" y2="43.671">
@@ -35,7 +38,7 @@ export default function BattleBotsSettings({setDown}){
                                 <text x={0} y={30} fill={"white"} fontSize={30}>БОТЫ</text>
                             </g>
                             <g onPointerDown={()=>setGame(
-                                {...game, players:game.players.length > 2?game.players.splice(1,game.players.length):game.players}
+                                {...game, players:game.players.length > 2?game.players.slice(0, -1):game.players}
                             )} transform={`translate(100 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={35} fill={"white"} fontSize={50}>-</text>

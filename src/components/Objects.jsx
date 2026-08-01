@@ -1,5 +1,6 @@
 import {useState, useEffect, useId} from 'react';
-import {splitArray} from "../action.js";
+import {checkConnection, splitArray} from "../action.js";
+import useStore from "../store.js";
 
 export const SciFiDice = ({ isRollAvailable, onRollComplete, x = 0 }) => {
     const [isRolling, setIsRolling] = useState(false);

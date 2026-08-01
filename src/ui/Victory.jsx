@@ -1,8 +1,9 @@
 import MenuBg from "./MenuBg.jsx";
 import useStore from "../store.js";
 import {useEffect, useMemo, useState} from "react";
-import {generateMaze} from "../action.js";
+import {generateMaze, getCreditPerTreasure} from "../action.js";
 import Btn from "./Btn.jsx";
+import {CreditChip} from "../components/Objects.jsx";
 
 export default function Victory(){
     const size = useStore((state)=>state.size)
@@ -10,6 +11,7 @@ export default function Victory(){
     const game = useStore((state)=>state.game)
     const pointsGame = useStore((state)=>state.pointsGame)
     const stars = useStore((state) => state.stars);
+    const quests = useStore((state) => state.quests);
     const [offset, setOffset] = useState(0);
     const [touchStart, setTouchStart] = useState(0);
 
@@ -48,11 +50,12 @@ export default function Victory(){
             p[index] = {
                 name:el.name,
                 color:el.color,
-                treasure:pointsGame.filter((f)=>f === index).length
+                treasure:pointsGame.filter((f)=>f === index).length,
+                credits:pointsGame.filter((f)=>f === index).length * getCreditPerTreasure(quests,game)
             }
         })
         return p.sort((a, b) => b.treasure - a.treasure);
-    },[game.players, pointsGame])
+    },[game, pointsGame, quests])
 
     useEffect(() => {
         useStore.getState().setPause(true)
@@ -80,7 +83,13 @@ export default function Victory(){
                             <rect width={el.treasure * 100 / (game.level + 0.5)} rx={2} height={5} y={25} fill={el.color} />
                             <text x={0} y={10} fill={"#A7EAF2"} fontSize={10}>{idx + 1}. {el.name}</text>
                             <text x={0} y={20} fill={"#A7EAF2"} fontSize={10}>Сокровищ собрано - {el.treasure}</text>
+                            <text x={110} y={8} fill={"#FFB700"} fontSize={10}>{el.credits}</text>
+                            <g transform={'translate(80 -15)'}>
+                                <CreditChip  width={35} height={35}  />
+                            </g>
                         </g>)}
+
+
                     </g>
                 </g>
             </svg>
