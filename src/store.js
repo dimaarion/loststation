@@ -13,13 +13,15 @@ const useStore = create((set) => ({
         };
 
     }),
+    restartCamera:null,
     credits:0,
     pointsGame:[],
-    selectLevel:1,
+    selectLevel:2,
     numberMoves:0,
     questTarget:0,
+    completeLevel:false,
     message:"",
-    levelId:"1-1",
+    levelId:2,
     page:"start_menu",
     gamePhase: "ROLL",
     droidType:[
@@ -44,6 +46,8 @@ const useStore = create((set) => ({
     ratio:(window.innerWidth + window.innerHeight) / 1000,
     game:{
         base:5,
+        baseFight:5,
+        levelFight:1,
         level:1,
         selectLevel:1,
         type:"",
@@ -81,13 +85,13 @@ const useStore = create((set) => ({
                 {
                     id: "1-2",
                     title: "Заклинивший Коридор",
-                    gridSize: 5,
+                    gridSize: 7,
                     maxTurns: 14,
                     lockTurn: 10,
                     scanRadius: 3,
                     botBehavior: "standard",
                     hazards: ["locked_tile"],
-                    fixedTreasures: { 'leg-data': 8 },
+                    fixedTreasures: { 'leg-data': 8 ,type:'leg-data'},
                     objectives: { main: { text: "Обойти заблокированные шлюзы", type: "COLLECT_AMOUNT", target: 8 } },
                     rewards: { completionCredits: 300, creditPerTreasure: 15, turnSpeedBonus: 20 }
                 },
@@ -100,7 +104,7 @@ const useStore = create((set) => ({
                     scanRadius: 4,
                     botBehavior: "standard",
                     hazards: ["locked_tile"],
-                    fixedTreasures: { 'leg-data': 10 },
+                    fixedTreasures: { 'leg-data': 10 ,type:'leg-data'},
                     objectives: { main: { text: "Собрать 10 логов до блокировки", type: "COLLECT_AMOUNT", target: 10 } },
                     rewards: { completionCredits: 450, creditPerTreasure: 20, turnSpeedBonus: 25 }
                 }
@@ -117,8 +121,14 @@ const useStore = create((set) => ({
             defaultGridSize: 6,
             introDialogue: { speaker: "Бортовой Компьютер", text: "Магнитные турбины вращают секции каждые 2 хода." },
             levels: [
-                { id: "2-1", title: "Шестеренки Станции", gridSize: 6, maxTurns: 14, lockTurn: 10, scanRadius: 4, botBehavior: "standard", hazards: ["auto_rotate"], fixedTreasures: { 'energy_core': 2, 'leg-data': 4 }, objectives: { main: { text: "Собрать 2 Энерго-Ядра", type: "COLLECT_SPECIFIC", target: 2 } }, rewards: { completionCredits: 500, creditPerTreasure: 20, turnSpeedBonus: 30 } },
-                { id: "2-2", title: "Нестабильный Поток", gridSize: 6, maxTurns: 15, lockTurn: 9, scanRadius: 4, botBehavior: "smart_pathfinder", hazards: ["auto_rotate", "locked_tile"], fixedTreasures: { 'energy_core': 3, 'leg-data': 6 }, objectives: { main: { text: "Собрать 6 данных в динамическом поле", type: "COLLECT_AMOUNT", target: 6 } }, rewards: { completionCredits: 650, creditPerTreasure: 25, turnSpeedBonus: 35 } },
+                { id: "2-1", title: "Шестеренки Станции", gridSize: 6, maxTurns: 14, lockTurn: 10, scanRadius: 4, botBehavior: "standard", hazards: ["auto_rotate"],
+                    fixedTreasures: { 'energy_core': 2, type:'energy_core'},
+                    objectives: { main: { text: "Собрать 2 Энерго-Ядра", type: "COLLECT_SPECIFIC", target: 2 } },
+                    rewards: { completionCredits: 500, creditPerTreasure: 20, turnSpeedBonus: 30 } },
+                { id: "2-2", title: "Нестабильный Поток", gridSize: 6, maxTurns: 15, lockTurn: 9, scanRadius: 4, botBehavior: "smart_pathfinder",
+                    hazards: ["auto_rotate", "locked_tile"],
+                    fixedTreasures: { 'energy_core': 6, 'leg-data': 6 },
+                    objectives: { main: { text: "Собрать 6 Энерго-Ядра в динамическом поле", type: "COLLECT_AMOUNT", target: 6 } }, rewards: { completionCredits: 650, creditPerTreasure: 25, turnSpeedBonus: 35 } },
                 { id: "2-3", title: "Перепитать Генераторы", gridSize: 7, maxTurns: 16, lockTurn: 8, scanRadius: 5, botBehavior: "smart_pathfinder", hazards: ["auto_rotate", "locked_tile"], fixedTreasures: { 'energy_core': 4 }, objectives: { main: { text: "Подключить 2 терминала", type: "CONNECT_TERMINALS", target: 2 } }, rewards: { completionCredits: 800, creditPerTreasure: 30, turnSpeedBonus: 40 } }
             ]
         },
@@ -223,6 +233,8 @@ const useStore = create((set) => ({
     ],
     pause:false,
     maze:generateMaze(5, 1),
+    setRestartCamera: (el) => set(() => ({ restartCamera: el})),
+    setCompleteLevel: (el) => set(() => ({ completeLevel: el})),
     setCredits: (el) => set((state) => ({ credits:state.credits+=el})),
     setPause: (el) => set(() => ({ pause: el})),
     setMaze: (el) => set(() => ({ maze: el})),
@@ -273,6 +285,9 @@ const useStore = create((set) => ({
     setMessage: (el) => set(() => ({message:el})),
     setQuestTarget: () => set((state) => ({questTarget:state.questTarget +=1 })),
     restartQuestTarget: () => set(() => ({questTarget:0 })),
+    selectLevelStep: () => set((state) => ({selectLevel:state.selectLevel +=1 })),
+    selectLevelIdStep: () => set((state) => ({levelId:state.levelId +=1 })),
+    selectLevelIdRestart: () => set(() => ({levelId:1 })),
 
 }))
 

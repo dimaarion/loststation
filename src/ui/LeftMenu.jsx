@@ -20,6 +20,8 @@ export default function LeftMenu({active= false}){
                     level:game.level,
                     type:game.type,
                     page:"game_one",
+                    baseFight:game.baseFight,
+                    levelFight:game.levelFight,
                     id:game.id,
                     selectLevel:game.selectLevel,
                     players:game.players,
@@ -27,6 +29,7 @@ export default function LeftMenu({active= false}){
 
                 setMaze(generateMaze(5,1,game.id))
                 useStore.getState().setNumberMovesRestart()
+                useStore.getState().setRestartCamera(null)
             }} x={20} y={20} className={"menu-content"} fill={game.type === "game-bot"?"#ffffff":"#A7EAF2"} fontSize={20} filter={"url(#filter_btn_3)"}>
                 ОДИНОЧНАЯ ИГРА
             </text>

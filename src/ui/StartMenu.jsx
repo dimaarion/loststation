@@ -99,8 +99,10 @@ export default function StartMenu(){
                 useStore.getState().setPage("game_one")
                 setGame({
                     base:5,
-                    level:1,
+                    level:game.level,
                     type:game.type,
+                    baseFight:5,
+                    levelFight:3,
                     page:"game_one",
                     id:"0",
                     selectLevel:selectLevel,
@@ -111,6 +113,7 @@ export default function StartMenu(){
                 })
                 useStore.getState().setGameType("game-fight")
                 setMaze(generateMaze(5,1,game.id))
+                useStore.getState().setRestartCamera(null)
             }}
                 onMouseOver={()=>{
                 setHover(true)

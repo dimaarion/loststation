@@ -3,6 +3,8 @@ import SpaceTileTShape from "./SpaceTileTShape.jsx";
 import SpaceTileCorner from "./SpaceTileCorner.jsx";
 import SpaseTileBlocking from "./SpaseTileBlocking.jsx";
 import SpaceTileGateway from "./SpaceTileGateway.jsx";
+import SpaceTileLocked from "./SpaceTileLocked.jsx";
+import SpaceTileAuto from "./SpaceTileAuto.jsx";
 
 export default function SpaseBase({tileRotate,type, translate, rotation, onClick, treasure, player, complete = false}) {
 
@@ -17,6 +19,10 @@ export default function SpaseBase({tileRotate,type, translate, rotation, onClick
             return <SpaseTileBlocking tileRotate={tileRotate}   player={player}  onClick={onClick} translate={translate} angle={rotation} />
         case 'gateway':
             return <SpaceTileGateway   complete={complete}  onClick={onClick} translate={translate} angle={rotation} />
+        case 'locked':
+            return <SpaceTileLocked   complete={complete} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
+        case 'auto_rotate':
+            return <SpaceTileAuto angle={rotation}  complete={complete} treasure={treasure}  onClick={onClick} translate={translate} angle={rotation} />
         default:
 
     }

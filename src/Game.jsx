@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useId, useMemo, useRef, useState} from "react";
 import {
     checkConnection,
     countTotalTreasures,
@@ -33,17 +33,18 @@ const MODES = {
 
 
 export default function Game({mode = "SINGLE", maze = []}){
+    const baseId = useId();
     const consecutiveSkipsRef = useRef(0);
     const isBotActingRef = useRef(false);
     const playerRotateRef = useRef(false);
-    const camDirectionRef = useRef(null);
     const [pathsData, setPathsData] = useState({});
     const [isMovingAnimation, setIsMovingAnimation] = useState(false);
     const [availableMoves, setAvailableMoves] = useState([]);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [board, setBoard] = useState(maze);
     const [droidCube, setDroidCube] = useState(0);
-    const [moveCamera, setMoveCamera] = useState({x:0,y:0});
+    const restartCamera = useStore((state) => state.restartCamera);
+    const setRestartCamera = useStore((state) => state.setRestartCamera);
     const [skipMoveActive, setSkipMoveActive] = useState(false);
     const gamePhase = useStore((state) => state.gamePhase);
     const stars = useStore((state) => state.stars);
@@ -60,6 +61,10 @@ export default function Game({mode = "SINGLE", maze = []}){
     const numberMoves = useStore((state) => state.numberMoves);
     const quests = useStore((state) => state.quests);
     const questTarget = useStore((state) => state.questTarget);
+
+
+    const fogGeneratorId = `${baseId}-fogGenerator`;
+    const fogEdgeBlurId = `${baseId}-fogEdgeBlur`;
 
 // 1. Создаем пружину для смещения ручной камеры
     const [{ camX, camY }, camApi] = useSpring(() => ({
@@ -115,12 +120,12 @@ export default function Game({mode = "SINGLE", maze = []}){
         if (isMovingAnimation) return;
         const route = pathsData[targetKey]; // Например: [[0,0], [1,0], [1,1]] или [[0,0]] (если клик по себе)
         if (!route) return;
-        camDirectionRef.current = "MOVE"
+        setRestartCamera("restart")
         // СЛУЧАЙ 1: Игрок никуда не идет (выпало 0 или кликнул на свою текущую клетку)
         if (route.length <= 1) {
             setPathsData({}); // Сбрасываем подсвеченные пути
             useStore.getState().setGamePhase('ROTATE');
-            camDirectionRef.current = null
+            setRestartCamera(null)
             return;
         }
 
@@ -135,7 +140,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                 setIsMovingAnimation(false);
                 setPathsData({});
                 useStore.getState().setGamePhase('ROTATE');
-                camDirectionRef.current = null
+                setRestartCamera(null)
                 return;
             }
 
@@ -151,6 +156,12 @@ export default function Game({mode = "SINGLE", maze = []}){
             setBoard(prevBoard =>
                 prevBoard.map(row =>
                     row.map(tile => {
+                        if(tile.type === "auto_rotate"){
+                            tile.rotation +=90
+                            if(tile.rotation === 360){
+                                tile.rotation = 0
+                            }
+                        }
                         if( tile.x === nextX && tile.y === nextY && tile.treasure){
                             setTimeout(()=>{
                                 setPointsGame(activePlayerIndex)
@@ -161,6 +172,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                                 if(getQuestTargetType(quests,game) === tile.treasure && activePlayerIndex === 0){
                                     if(questTarget === getObjectivesTarget(quests,game) - 1){
                                         useStore.getState().setCredits(getCompletionCredits(quests,game))
+                                        useStore.getState().setCompleteLevel(true)
                                     }
                                     useStore.getState().setQuestTarget()
 
@@ -189,20 +201,21 @@ export default function Game({mode = "SINGLE", maze = []}){
 
         }, 1000); // Скорость шага дроида
         return ()=>clearInterval(movementInterval)
-    }, [isMovingAnimation, pathsData, setGame, game, activePlayerIndex, setPointsGame, quests, questTarget]);
+    }, [isMovingAnimation, pathsData, setRestartCamera, setGame, game, activePlayerIndex, setPointsGame, quests, questTarget]);
 
     const handleTileRotate = useCallback((targetX, targetY) => {
         if(playerRotateRef.current)return;
         // 1. Проверяем, что сейчас действительно фаза вращения и дроид не находится в движении
         if (gamePhase !== 'ROTATE' || isMovingAnimation) return;
 
-        playerRotateRef.current = true
+
         const currentPlayer = game.players[activePlayerIndex];
 
         // 2. Расчет дистанции: проверяем, что плитка находится в радиусе 1 шага
         // (0 — плитка под игроком, 1 — соседние плитки крестом. Диагонали выдадут 2, они отсекаются)
         const distance = Math.abs(currentPlayer.x - targetX) + Math.abs(currentPlayer.y - targetY);
         if (distance <= 1) {
+            playerRotateRef.current = true
             // 3. Вращаем выбранную плитку в массиве board на 90 градусов
             setBoard(prevBoard =>
                 prevBoard.map(row =>
@@ -548,11 +561,11 @@ export default function Game({mode = "SINGLE", maze = []}){
 // При изменении фазы на MOVE сбрасываем ручной сдвиг камеры в 0
     useEffect(() => {
 
-        if (gamePhase === "MOVE") {
+        if (restartCamera === "restart" || gamePhase === "MOVE") {
             targetCamRef.current = { x: 0, y: 0 };
             camApi.start({ camX: 0, camY: 0 });
         }
-    }, [gamePhase, camApi]);
+    }, [restartCamera, camApi, gamePhase]);
 
 
 
@@ -564,13 +577,6 @@ export default function Game({mode = "SINGLE", maze = []}){
             duration:5000
         }
     });
-    useEffect(() => {
-        if(gamePhase === "MOVE"){
-            camDirectionRef.current = "MOVE"
-        }else {
-            camDirectionRef.current = null
-        }
-    }, [gamePhase]);
 
     return <div>
         <svg xmlns="http://www.w3.org/2000/svg" style={styles.main} width={size.width} height={size.height} viewBox={`${0} ${0} ${size.width / ratio} ${size.height / ratio}`}>
@@ -628,6 +634,34 @@ export default function Game({mode = "SINGLE", maze = []}){
                     <feBlend mode="normal" in2="BackgroundImageFix_btn_hover_1" result="Shadow_btn_hover_2" />
                     <feBlend mode="normal" in="SourceGraphic" in2="Shadow_btn_hover_btn_hover_2" result="Shape_btn_hover_3" />
                 </filter>
+                <filter id={fogGeneratorId} x="0%" y="0%" width="100%" height="100%">
+                    <feTurbulence
+                        type="fractalNoise"
+                        baseFrequency="0.05"
+                        numOctaves={3}
+                        result="noise"
+                    >
+                        <animate
+                            attributeName="seed"
+                            values="1;5;1"
+                            dur="20s"
+                            repeatCount="indefinite"
+                        />
+                    </feTurbulence>
+
+                    <feColorMatrix
+                        in="noise"
+                        type="matrix"
+                        values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.8 0"
+                        result="cloudAlpha"
+                    />
+
+                    <feComposite in="SourceGraphic" in2="cloudAlpha" operator="in" />
+                </filter>
+
+                <filter id={fogEdgeBlurId} x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation={5} />
+                </filter>
             </defs>
             <g>
                 <rect width={"100%"} height={"100%"} fill={"#000"} />
@@ -643,6 +677,8 @@ export default function Game({mode = "SINGLE", maze = []}){
                 }}><animated.g style={translateCam}>
                     <rect x={-10} y={-10} width={board.length * 100 + 20} height={board.length * 100 + 20}
                           fill={"#373A40"}/>
+                    <rect x={0} y={0} width={board.length * 100} height={board.length * 100}
+                          fill={"#000"}/>
                 </animated.g></animated.g>:""}
             </g>
             {page === "game_play"?
@@ -758,6 +794,7 @@ export default function Game({mode = "SINGLE", maze = []}){
             {page === "game_one"?<GameOne height={size.height} width={size.width} ratio={ratio} />:""}
             {page === "drone_settings"?<DroneParams height={size.height} width={size.width} ratio={ratio} />:""}
             {count === 0?<Victory/>:""}
+
             {page === "game_play" && !pause?<g>
                 {/* Стрелка Вправо */}
                 <g

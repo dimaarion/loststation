@@ -1426,7 +1426,140 @@ export const SpaceTileLogData = (props) => {
     );
 };
 
+export const SpaceTileGenerator = (props) => {
+    const baseId = useId();
+    const bronzeGradId = `${baseId}-bronze_grad`;
+    const sparkGlowId = `${baseId}-spark_glow`;
 
+    return (
+        <svg
+            width="100"
+            height="100"
+            viewBox="0 0 100 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            {...props}
+        >
+            <defs>
+                <linearGradient
+                    id={bronzeGradId}
+                    x1="0%"
+                    y1="0%"
+                    x2="0%"
+                    y2="100%"
+                >
+                    <stop offset="0%" stopColor="#CD7F32" />
+                    <stop offset="100%" stopColor="#8B4513" />
+                </linearGradient>
+
+                <filter
+                    id={sparkGlowId}
+                    x="-50%"
+                    y="-50%"
+                    width="200%"
+                    height="200%"
+                >
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1" />
+                </filter>
+            </defs>
+
+            <rect
+                width="100"
+                height="100"
+                rx="8"
+                fill="#1A1F26"
+                stroke="#0D1117"
+                strokeWidth="2"
+            />
+
+            <g transform="translate(50, 50)">
+                <rect
+                    x="-35"
+                    y="-30"
+                    width="12"
+                    height="60"
+                    rx="2"
+                    fill="#2D3748"
+                    stroke="#0D1117"
+                />
+                <rect
+                    x="23"
+                    y="-30"
+                    width="12"
+                    height="60"
+                    rx="2"
+                    fill="#2D3748"
+                    stroke="#0D1117"
+                />
+
+                <path
+                    d="M-33 -25V25M-31 -25V25M-29 -25V25M25 -25V25M27 -25V25M29 -25V25"
+                    stroke="#B87333"
+                    strokeWidth="1"
+                />
+
+                <g>
+                    <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0"
+                        to="360"
+                        dur="4s"
+                        repeatCount="indefinite"
+                    />
+
+                    <rect x="-2" y="-35" width="4" height="70" fill="#0D1117" />
+
+                    <ellipse
+                        cx="0"
+                        cy="-20"
+                        rx="20"
+                        ry="6"
+                        fill={`url(#${bronzeGradId})`}
+                        stroke="#0D1117"
+                    />
+                    <ellipse
+                        cx="0"
+                        cy="0"
+                        rx="20"
+                        ry="6"
+                        fill={`url(#${bronzeGradId})`}
+                        stroke="#0D1117"
+                    />
+                    <ellipse
+                        cx="0"
+                        cy="20"
+                        rx="20"
+                        ry="6"
+                        fill={`url(#${bronzeGradId})`}
+                        stroke="#0D1117"
+                    />
+                </g>
+
+                <g stroke="#00F0FF" strokeWidth="1" filter={`url(#${sparkGlowId})`}>
+                    <path d="M-20 -15L-15 -10M15 -10L20 -15">
+                        <animate
+                            attributeName="opacity"
+                            values="0;1;0"
+                            dur="0.5s"
+                            repeatCount="indefinite"
+                            begin="0.1s"
+                        />
+                    </path>
+                    <path d="M-20 15L-15 10M15 10L20 15">
+                        <animate
+                            attributeName="opacity"
+                            values="0;1;0"
+                            dur="0.5s"
+                            repeatCount="indefinite"
+                            begin="0.3s"
+                        />
+                    </path>
+                </g>
+            </g>
+        </svg>
+    );
+};
 
 const styles = {
     main: {

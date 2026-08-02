@@ -5,15 +5,20 @@ import {generateMaze, getCreditPerTreasure} from "../action.js";
 import Btn from "./Btn.jsx";
 import {CreditChip} from "../components/Objects.jsx";
 
-export default function Victory(){
-    const size = useStore((state)=>state.size)
-    const ratio = useStore((state)=>state.ratio)
-    const game = useStore((state)=>state.game)
-    const pointsGame = useStore((state)=>state.pointsGame)
+export default function Victory() {
+    const size = useStore((state) => state.size)
+    const ratio = useStore((state) => state.ratio)
+    const game = useStore((state) => state.game)
+    const pointsGame = useStore((state) => state.pointsGame)
     const stars = useStore((state) => state.stars);
     const quests = useStore((state) => state.quests);
+    const levelComplete = useStore((state) => state.completeLevel);
+    const selectLevel = useStore((state) => state.selectLevel);
+    const levelId = useStore((state) => state.levelId);
+
     const [offset, setOffset] = useState(0);
     const [touchStart, setTouchStart] = useState(0);
+
 
     const handleTouchStart = (e) => {
         setTouchStart(e.touches[0].clientY);
@@ -41,76 +46,112 @@ export default function Victory(){
         const maxScore = Math.max(...scores);
         const player0Score = pointsGame.filter((f) => f === 0).length;
         return maxScore === player0Score ? "ПОБЕДА" : "ПОРАЖЕНИЕ";
+
     }, [game.players, pointsGame]);
 
 
-    const players = useMemo(()=>{
+    const players = useMemo(() => {
+        let levelComplete = 0
         let p = []
-        game.players.forEach((el,index)=>{
+        game.players.forEach((el, index) => {
             p[index] = {
-                name:el.name,
-                color:el.color,
-                treasure:pointsGame.filter((f)=>f === index).length,
-                credits:pointsGame.filter((f)=>f === index).length * getCreditPerTreasure(quests,game)
+                name: el.name,
+                color: el.color,
+                treasure: pointsGame.filter((f) => f === index).length,
+                credits: pointsGame.filter((f) => f === index).length * getCreditPerTreasure(quests, game) + levelComplete
             }
         })
         return p.sort((a, b) => b.treasure - a.treasure);
-    },[game, pointsGame, quests])
+    }, [game, pointsGame, quests])
+
+    const lev = useMemo(() => {
+        return quests.filter((el) => el.sectorId === selectLevel).map((el) => el.levels.filter((el) => el.id === selectLevel + "-" + levelId))[0].length  //quests.filter((el)=>el.sectorId === selectLevel).levels.filter((el)=>el.id === selectLevel + "-" + levelId).length
+    }, [levelId, quests, selectLevel])
 
     useEffect(() => {
         useStore.getState().setPause(true)
     }, []);
 
-    return<g onTouchStart={handleTouchStart}
-             onTouchMove={handleTouchMove} onWheel={handleWheel} transform={`translate(${size.width / ratio / 2 - 142} ${size.height / ratio / 2 - 102})`}>
-        <rect x={-size.width / ratio / 2 + 142} y={-size.height / ratio / 2 + 102} width={"100%"} height={"100%"} fill={"#000"} />
-        <g transform={`translate(${-size.width / ratio / 2 - 142} ${-size.height / ratio / 2 - 102})`}>
-            {stars.map((el,i)=> <g key={i + "star-victory"} transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`} width={50} height={50}>
-                <path d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z" fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)" />
-            </g>)}
-        </g>
-
-        <g transform={`scale(0.3)`}>
-            <MenuBg/>
-        </g>
-        <g >
-            <text x={115 - title.length * 0.5} y={30} fill={"white"} fontSize={20}>{title}</text>
-            <svg y={40} width={"250"} height={"110"}>
-                <g transform={"translate(0 5)"}>
-                    <g style={styles.slider} transform={`translate(42 ${-offset})`}>
-                        <rect  x={-5} y={-5} fill={"#0C3C4C"}  width={210} height={game.players.length * 40} />
-                        {players.map((el,idx)=><g key={idx + "players-victory"} transform={`translate(0 ${idx * 35})`}>
-                            <rect width={el.treasure * 100 / (game.level + 0.5)} rx={2} height={5} y={25} fill={el.color} />
-                            <text x={0} y={10} fill={"#A7EAF2"} fontSize={10}>{idx + 1}. {el.name}</text>
-                            <text x={0} y={20} fill={"#A7EAF2"} fontSize={10}>Сокровищ собрано - {el.treasure}</text>
-                            <text x={110} y={8} fill={"#FFB700"} fontSize={10}>{el.credits}</text>
-                            <g transform={'translate(80 -15)'}>
-                                <CreditChip  width={35} height={35}  />
-                            </g>
-                        </g>)}
 
 
-                    </g>
-                </g>
-            </svg>
-            <g onPointerDown={()=>{
-                useStore.getState().setPage(game.page)
-                useStore.getState().setMaze(generateMaze(game.base, game.level))
-                useStore.getState().setGamePlayerPositionRestart()
-                useStore.getState().setGamePhase("")
-            }} transform={"translate(113 150)"}>
-                <Btn x={0} y={0} scale={0.2} text={"Закрыть"} fontSize={80} active={false} tx={65} ty={160} />
+    return <g>
+        <g onTouchStart={handleTouchStart}
+           onTouchMove={handleTouchMove} onWheel={handleWheel}
+           transform={`translate(${size.width / ratio / 2 - 142} ${size.height / ratio / 2 - 102})`}>
+            <rect x={-size.width / ratio / 2 + 142} y={-size.height / ratio / 2 + 102} width={"100%"} height={"100%"}
+                  fill={"#000"}/>
+            <g transform={`translate(${-size.width / ratio / 2 - 142} ${-size.height / ratio / 2 - 102})`}>
+                {stars.map((el, i) => <g key={i + "star-victory"}
+                                         transform={`translate(${el.position.x} ${el.position.y}) scale(${el.scale / 300})`}
+                                         width={50} height={50}>
+                    <path
+                        d="M0 10C0 4.47716 4.47716 0 10 0C15.5228 0 20 4.47716 20 10C20 15.5228 15.5228 20 10 20C4.47716 20 0 15.5228 0 10Z"
+                        fill="#FFFFFF" fillRule="evenodd" filter="url(#filter_1)" transform="translate(15 15)"/>
+                </g>)}
             </g>
 
+            <g transform={`scale(0.3)`}>
+                <MenuBg/>
+            </g>
+            <g>
+                <svg y={40} width={"250"} height={"110"}>
+                    <g transform={"translate(0 5)"}>
+                        <g style={styles.slider} transform={`translate(42 ${-offset})`}>
+                            <rect x={-5} y={-5} fill={"#0C3C4C"} width={210} height={game.players.length * 40}/>
+                            {players.map((el, idx) => <g key={idx + "players-victory"}
+                                                         transform={`translate(0 ${idx * 35})`}>
+                                <rect width={el.treasure * 100 / (game.level + 0.5)} rx={2} height={5} y={25}
+                                      fill={el.color}/>
+                                <text x={0} y={10} fill={"#A7EAF2"} fontSize={10}>{idx + 1}. {el.name}</text>
+                                <text x={0} y={20} fill={"#A7EAF2"} fontSize={10}>Сокровищ собрано
+                                    - {el.treasure}</text>
+                                <text x={110} y={8} fill={"#FFB700"} fontSize={10}>{el.credits}</text>
+                                <g transform={'translate(80 -15)'}>
+                                    <CreditChip width={35} height={35}/>
+                                </g>
+                            </g>)}
+
+
+                        </g>
+                    </g>
+                </svg>
+                <g onPointerDown={() => {
+                    useStore.getState().setPage(game.page)
+                    useStore.getState().setMaze(generateMaze(game.base, game.level))
+                    useStore.getState().setGamePlayerPositionRestart()
+                    useStore.getState().setGamePhase("")
+
+                    if (game.type === "game-passing") {
+                        if (lev > 0) {
+                            useStore.getState().selectLevelIdStep()
+                        } else {
+                            useStore.getState().selectLevelStep()
+                            useStore.getState().selectLevelIdRestart()
+                        }
+
+
+                        useStore.getState().setCompleteLevel(false)
+                    }
+
+                }} transform={"translate(113 150)"}>
+                    <Btn x={0} y={0} scale={0.2} text={"Закрыть"} fontSize={80} active={false} tx={65} ty={160}/>
+                </g>
+
+            </g>
+            <g transform={`translate(${(size.width / ratio / 2) - 185} ${0})`}>
+                <text x={-title.length * 3.8} y={30} fill={"white"} fontSize={20}>{title}</text>
+            </g>
         </g>
+
     </g>
+
 }
 
 const styles = {
-    slider:{
-        transition:"0.5s"
+    slider: {
+        transition: "0.5s"
     },
-    thumb:{
-        transition:"0.5s"
+    thumb: {
+        transition: "0.5s"
     }
 }

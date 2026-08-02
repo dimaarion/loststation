@@ -2,13 +2,14 @@ import useStore from "../store.js";
 import {CreditChip} from "../components/Objects.jsx";
 import {useSpring,animated} from "@react-spring/web";
 import Btn from "./Btn.jsx";
-import {SpaceDroidToken} from "../components/Players.jsx";
 import Treasures from "../components/Treasures.jsx";
+import {getObjectivesTarget} from "../action.js";
 
 export default function MessageLevel(){
     const quests = useStore((state) => state.quests);
     const game = useStore((state) => state.game);
     const questTarget = useStore((state) => state.questTarget);
+    const selectLevel = useStore((state) => state.selectLevel);
 
     const questLevel = quests.filter((el)=>el.sectorId === game.selectLevel).find((el)=>el).levels.find((el)=>el.id === game.id)
     const[ translate,api] = useSpring(()=>({
@@ -48,7 +49,7 @@ export default function MessageLevel(){
                 <path d="M5.52864 93.4226L0 89.2285L0 4.81241L6.6556 0L175.531 0L182.305 4.81241L182.305 89.2045L176.536 93.4226L5.52864 93.4226Z" fill="#274957" fillRule="evenodd" strokeWidth="4" stroke="#5DC9D6" transform="matrix(1 0 0 1 5.278 3.254)" />
                 <g transform={'translate(20 25)'}>
                     <text x={0} y={0} fill={"#a7cde4"} fontSize={20}>{questLevel.title}</text>
-                    <text x={0} y={18} fill={"#a7cde4"} fontSize={15}>{questLevel.objectives.main.text}</text>
+                    <text x={0} y={12} fill={"#a7cde4"} fontSize={10}>{questLevel.objectives.main.text}</text>
                     <g transform={'translate(-12 25)'}>
                         <CreditChip width={45} height={45}  />
                         <text fill={"#FFB700"} fontSize={15} filter={"url(#filter_btn_3)"} transform={`translate(${35} ${32})`}>{questLevel.rewards.completionCredits}</text>
@@ -64,11 +65,13 @@ export default function MessageLevel(){
                 }}>
                     <Btn x={110} y={50} scale={0.2} fontSize={70} text={"Закрыть"} ty={155} tx={80} />
                 </g>
-                <g transform={"scale(0.6) translate(225 -15)"}>
+                <g transform={"scale(0.6) translate(225 40)"}>
                     <Treasures  treasure={questLevel.fixedTreasures.type}/>
                 </g>
-                <rect x={20} y={45} rx={8} fill={"#000"} width={90} height={20} />
+                <rect x={20} y={45} rx={8} fill={"#000"} width={70} height={20} />
                 <text x={25} y={61} fontSize={20} fill={"#a7cde4"}>{questTarget}</text>
+                <text x={115} y={61} fontSize={20} fill={"#a7cde4"}>{getObjectivesTarget(quests,game)}</text>
+
             </g>
         </animated.g>
 

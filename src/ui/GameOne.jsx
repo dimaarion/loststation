@@ -18,11 +18,13 @@ export default function GameOne({width, height, ratio}){
     const credits = useStore((state) => state.credits);
     const selectLevel = useStore((state) => state.selectLevel);
     const levelId = useStore((state) => state.levelId);
+    const setRestartCamera = useStore((state) => state.setRestartCamera);
 
     function fixedTreasures(quests) {
-    let t = quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === game.id);
+    let t = quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === selectLevel + "-" + levelId);
     return t ? t.fixedTreasures : {};
     }
+console.log(levelId)
     return <g>
         <defs>
             <linearGradient id="bg_game_one" gradientUnits="userSpaceOnUse" x1="30%" y1="0" x2="90%" y2="100%">
@@ -42,15 +44,24 @@ export default function GameOne({width, height, ratio}){
         </g>
         <svg onPointerDown={()=>{
             useStore.getState().setPage("game_play")
-            setMaze(generateMaze(game.base,game.level,game.id,fixedTreasures(quests)))
+            switch (game.type) {
+                case "game-fight":
+                    setMaze(generateMaze(game.baseFight,game.levelFight * 2 + 1,"none"));
+                    break;
+                case "game-passing":
+                    setMaze(generateMaze(game.base,game.level,game.id,fixedTreasures(quests)));
+                    break;
+            }
+
             useStore.getState().setPause(false)
             useStore.getState().removePointsGame()
             useStore.getState().setGamePlayerType(type)
             useStore.getState().setGamePlayerPositionRestart()
             useStore.getState().setGamePhase("ROLL")
             useStore.getState().setGameSelectLevel(selectLevel)
-            useStore.getState().setGameId(levelId)
+            useStore.getState().setGameId(selectLevel + "-" + levelId)
             useStore.getState().setNumberMovesRestart()
+            setRestartCamera("restart")
         }} x={"100%"} transform={"translate(-100 -80)"} y={"100%"} >
             <Btn x={0} y={0} scale={0.2} text={"ИГРАТЬ"} tx={80} />
         </svg>
@@ -62,7 +73,7 @@ export default function GameOne({width, height, ratio}){
                 <path  d="M20.0273 0L394.861 0L417.579 21.4552L417.579 95.9172L410.832 100.009L410.832 168.269L417.579 173.819L417.579 241.269L399.442 260.454L20.0273 260.62L0 241.269L0 173.973L4.99805 168.269L4.99805 100.24L0 95.8084L0 21.6221L20.0273 0Z" fill="none" strokeWidth="5" stroke="url(#gradient_game_one_box)" transform="translate(2.5 2.5)" />
                 <text  x={20} y={50} fill={"#A7EAF2"} fontSize={50}>СХВАТКА: БОТЫ</text>
                 <text  x={20} y={100} fill={"#A7EAF2"} fontSize={30}>БОТЫ: {game.players.length - 1}</text>
-                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {game.base} x {game.base}</text>
+                <text  x={20} y={130} fill={"#A7EAF2"} fontSize={30}>СТАНЦИЯ: {game.baseFight} x {game.baseFight}</text>
 
                 <g onPointerDown={()=>setBattleSettings(true)}>
                     <Btn x={150} y={170} scale={0.35} text={"Настройки"} tx={35} fontSize={80}/>
@@ -81,7 +92,7 @@ export default function GameOne({width, height, ratio}){
                         <WrappedText color={"#A7EAF2"} text={el.storyTitle} x={20} y={130} lineHeight={20} maxChars={50} />
                     </g>
                     <g>
-                        {el.levels.filter((levF)=>levF.id === game.id).map((lev)=><g key={game.id + "Прохождение"}>
+                        {el.levels.filter((levF)=>levF.id === (selectLevel + "-" + levelId)).map((lev)=><g key={game.id + "Прохождение"}>
 
                             <text  x={20} y={185} fill={"#A7EAF2"} fontSize={25}>{lev.title}</text>
                             <text  x={20} y={210} fill={"#EADCFA"} fontSize={20}>{lev.objectives.main.text}</text>
@@ -97,7 +108,9 @@ export default function GameOne({width, height, ratio}){
                 level:game.level,
                 type:"game-fight",
                 page:"game_one",
-                id:"0",
+                baseFight:game.baseFight,
+                levelFight:game.levelFight,
+                id:"none",
                 selectLevel:game.selectLevel,
                 players:[
                     {...droidType.find((el) => el.type === type),id:1, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: false },
@@ -109,11 +122,13 @@ export default function GameOne({width, height, ratio}){
         </svg>
         <svg onPointerDown={()=>{
             useStore.getState().setGame({
-                base:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === levelId).gridSize,
-                level:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === levelId).maxTurns,
+                base:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === (selectLevel + "-" + levelId))?.gridSize,
+                level:quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === (selectLevel + "-" + levelId))?.maxTurns,
+                baseFight:5,
+                levelFight:3,
                 type:"game-passing",
                 page:"game_one",
-                id:levelId,
+                id:(selectLevel + "-" + levelId),
                 selectLevel:selectLevel,
                 players:[
                     {...droidType.find((el) => el.type === type),id:1, x: 0, y: 0, stepsLeft: 0,treasure:0, isAI: false },

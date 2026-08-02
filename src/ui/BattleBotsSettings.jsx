@@ -9,7 +9,7 @@ export default function BattleBotsSettings({setDown}){
     const setGame = useStore((state) => state.setGame);
     const game = useStore((state) => state.game);
     const botCount = game.players.length - 1
-    const base = game.base
+    const base = game.baseFight
     const baseSize = base  + " x " + base
 
     useEffect(() => {
@@ -63,13 +63,13 @@ export default function BattleBotsSettings({setDown}){
                                 <text x={0} y={30} fill={"white"} fontSize={30}>СТАНЦИЯ</text>
                             </g>
                             <g onPointerDown={()=> {
-                                setGame({...game,base:game.base > 5?game.base - 5:5,level:Math.round(game.base / 2)})
+                                setGame({...game,baseFight:game.baseFight > 5?game.baseFight - 5:5,levelFight:Math.round(game.baseFight)})
                             }} transform={`translate(100 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={35} fill={"white"} fontSize={50}>-</text>
                             </g>
                             <g onPointerDown={()=> {
-                                setGame({...game,base:game.base + 5,level:Math.round(game.base / 2)})
+                                setGame({...game,baseFight:game.baseFight + 5,levelFight:Math.round(game.baseFight)})
                             }}  transform={`translate(250 0)`}>
                                 <path d="M0 3.07816L2.30859 0L36.8018 0L36.8018 29.3965L28.7192 40.2734L0 39.974L0 3.07816Z" fill="#27414F" strokeWidth="3" stroke="#74B6C2" strokeLinejoin="round" transform="translate(1.5 1.5)" />
                                 <text x={12} y={32} fill={"white"} fontSize={33}>+</text>

@@ -77,20 +77,43 @@ const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
  * @param fixedTreasures
  * @returns {Array<Array<Object>>} Двумерный массив плиток лабиринта
  */
-export const generateMaze = (gridSize, level,id = "-1",fixedTreasures = {}) => {
+export const generateMaze = (gridSize, level,id = "none",fixedTreasures = {}) => {
 
     // Количество сокровищ растет с уровнем
 
-    const treasuresCount = level * 2 + 1;
-    const treasuresList = generateTreasuresList(treasuresCount, gridSize,fixedTreasures);
+
+    const treasuresList = generateTreasuresList(level, gridSize,fixedTreasures);
 
     // Пропорции плиток на станции: ~40% углов, ~40% прямых, ~20% Т-образных перекрестков
-    const getWeightedRandomType = () => {
-        const rand = Math.random();
-        if (rand < 0.4) return 'corner';
-        if (rand < 0.8) return 'straight';
-        return 't_shape';
+    const TILE_WEIGHTS_BY_LEVEL = {
+        // Стандартный уровень
+        default: { corner: 40, straight: 40, t_shape: 20, locked: 2 ,auto_rotate:0},
+
+        // Уровень 1-2 (появляются заблокированные плитки)
+        '1-2':   { corner: 35, straight: 35, t_shape: 15, locked: 20,auto_rotate:0 },
+        '1-3':   { corner: 35, straight: 35, t_shape: 15, locked: 4 ,auto_rotate:0},
+        '2-2':   { corner: 30, straight: 30, t_shape: 20, locked: 0,auto_rotate:10 },
+        // Сложный сектор
+        '5-2':   { corner: 30, straight: 30, t_shape: 20, locked: 20 ,auto_rotate:10},
     };
+
+    const getWeightedRandomType = (levelId = 'default') => {
+        const weights = TILE_WEIGHTS_BY_LEVEL[levelId] || TILE_WEIGHTS_BY_LEVEL.default;
+
+        // Считаем общую сумму весов
+        const totalWeight = Object.values(weights).reduce((acc, w) => acc + w, 0);
+        let randomNum = Math.random() * totalWeight;
+
+        for (const [type, weight] of Object.entries(weights)) {
+            if (randomNum < weight) {
+                return type;
+            }
+            randomNum -= weight;
+        }
+
+        return 'straight'; // Фоллбек
+    };
+
 
     const newBoard = [];
 
@@ -98,20 +121,12 @@ export const generateMaze = (gridSize, level,id = "-1",fixedTreasures = {}) => {
         const row = [];
         for (let x = 0; x < gridSize; x++) {
             // 1. Определяем тип плитки
-            let type = getWeightedRandomType();
+            let type = getWeightedRandomType(id);
 
             // Гарантируем, что стартовые углы лабиринта (где могут стоять игроки)
             // будут Т-образными или углами, чтобы игроки не оказались заперты в прямой тупик
             if ((x === 0 && y === 0) || (x === gridSize-1 && y === gridSize-1)) {
                 type = 't_shape';
-            }
-            if(id === "1-1"){
-                if ((x === 4 && y === 5) || (x === 6 && y === 5) || (x === 5 && y === 4) || (x === 5 && y === 6)) {
-                    type = 'blocking';
-                }
-                if (x === 5 && y === 5) {
-                    type = 'gateway';
-                }
             }
 
             // 2. Случайный начальный поворот (0, 90, 180, 270 градусов)
@@ -120,7 +135,7 @@ export const generateMaze = (gridSize, level,id = "-1",fixedTreasures = {}) => {
             const playerId = -1
             // 3. Проверяем, должно ли на этой плитке лежать сокровище
             const treasureFound = treasuresList.find(t => t.x === x && t.y === y);
-            const treasure = treasureFound ? treasureFound.type : null;
+            const treasure = getTileTreasure(type,treasureFound,[] ,[])
 
             // 4. Собираем объект плитки
             row.push({
@@ -140,13 +155,33 @@ export const generateMaze = (gridSize, level,id = "-1",fixedTreasures = {}) => {
     return newBoard;
 };
 
+function getTileTreasure(tile,treasureFound){
+    if (!treasureFound) return null;
+
+    const tileType = typeof tile === 'object' ? tile?.type : tile;
+
+    // 1. Заблокированные плитки — сразу null
+    if (tileType === "locked") return null;
+
+    // 2. На вращающихся плитках разрешаем ТОЛЬКО energy_core
+    if (tileType === "auto_rotate") {
+        return treasureFound.type === "energy_core" ? treasureFound.type : null;
+    }
+
+    // 3. На всех остальных плитках спавним любое найденное сокровище
+    return treasureFound.type;
+
+}
+
 // Базовая проходимость при rotation = 0 [Вверх, Вправо, Вниз, Влево]
 const TILE_EXITS = {
     straight: [true, false, true, false],  // Прямая (проход Вверх-Вниз)
     corner:   [false, true, true, false],  // Угол (проход Вниз-Вправо)
-    t_shape:  [false, true, true, true],
+    t_shape:  [false, true, true, true], //Т-образная (Вверх-Вправо-Влево)
     blocking:  [true, false, true, false],
-    gateway:  [true, true, true, true],// Т-образная (Вверх-Вправо-Влево)
+    gateway:  [true, true, true, true],
+    locked:  [false, false, false, false],
+    auto_rotate:  [false, false, false, true],
 };
 
 // Получить выходы с учетом текущего поворота плитки
@@ -170,6 +205,8 @@ const canMoveBetween = (tileA, tileB, dir) => {
 
     return exitsA[dir] && exitsB[oppositeDir];
 };
+
+
 
 export const findAvailablePaths = (startX, startY, stepsLeft, board) => {
     const gridSize = board.length;
@@ -325,15 +362,18 @@ export function getPlayersPoint(game, activePlayerIndex, player){
 }
 
 export function getQuestTargetType(quests,game){
-    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].fixedTreasures.type;
+
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0]?.fixedTreasures.type;
 }
 
 export function getCompletionCredits(quests,game){
-    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].rewards.completionCredits;
+
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0]?.rewards.completionCredits;
 }
 
 export function getCreditPerTreasure(quests,game){
-    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].rewards.creditPerTreasure;
+
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0]?.rewards.creditPerTreasure;
 }
 
 export function getTurnSpeedBonus(quests,game){
@@ -341,5 +381,6 @@ export function getTurnSpeedBonus(quests,game){
 }
 
 export function getObjectivesTarget(quests,game){
-    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id===game.id))[0].objectives.main.target;
+    return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id=== game.id))[0].objectives.main.target;
 }
+
