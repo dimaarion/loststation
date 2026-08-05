@@ -23,7 +23,7 @@ export function getRandomInt(min, max) {
  */
 const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
     const treasures = [];
-    const types = ['energy_core', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter', 'leg-data'];
+    const types = ['energy_core','generator', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter', 'leg-data'];
 
     // 1. Проверки на размеры сетки
     const finalCount = Math.max(1, count);
@@ -93,6 +93,7 @@ export const generateMaze = (gridSize, level,id = "none",fixedTreasures = {}) =>
         '1-2':   { corner: 35, straight: 35, t_shape: 15, locked: 20,auto_rotate:0 },
         '1-3':   { corner: 35, straight: 35, t_shape: 15, locked: 4 ,auto_rotate:0},
         '2-2':   { corner: 30, straight: 30, t_shape: 20, locked: 0,auto_rotate:10 },
+        '2-3':   { corner: 30, straight: 30, t_shape: 20, locked: 10,auto_rotate:10 },
         // Сложный сектор
         '5-2':   { corner: 30, straight: 30, t_shape: 20, locked: 20 ,auto_rotate:10},
     };

@@ -1,19 +1,24 @@
 import {useId} from "react";
 import Treasures from "./Treasures.jsx";
 import {useSpring,animated} from "@react-spring/web";
+import {RotateIcon} from "./Objects.jsx";
+import useStore from "../store.js";
 
-export const SpaceTileAuto = ({translate = {x:0,y:0},treasure, angle, onClick, player }) => {
+export const SpaceTileAuto = ({tileRotate, angle = 0, translate = {x:0,y:0}, treasure = null, onClick, player }) => {
     const baseId = useId();
     const doorGradientId = `${baseId}-doorGradient`;
     const neonCyanGlowId = `${baseId}-neonCyanGlow`;
+    const gamePhase = useStore((state) => state.gamePhase);
     const { rotation } = useSpring({
         rotation: angle, // Сюда передаем 0, 90, 180 или 270 градусов из стейта
         config: {
             duration:500,
         }
     });
+
+    const distance = Math.abs(player.x - translate.x / 100) + Math.abs(player.y - translate.y / 100);
     return (
-        <g  transform={`translate(${translate.x}, ${translate.y})`}>
+        <g  transform={`translate(${translate.x}, ${translate.y})`} onClick={()=>onClick(translate.x / 100, translate.y / 100)}>
 
             <defs>
                 <radialGradient
@@ -134,6 +139,10 @@ export const SpaceTileAuto = ({translate = {x:0,y:0},treasure, angle, onClick, p
     </g>
 </g>
             </animated.g>
+            <g transform={'translate(50 50)'}>
+
+                {distance <= 1 && gamePhase === "ROTATE"?<animated.g style={tileRotate}><RotateIcon/></animated.g>:""}
+            </g>
             <Treasures treasure={treasure}/>
 
         </g>

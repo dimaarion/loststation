@@ -179,9 +179,12 @@ export default function Game({mode = "SINGLE", maze = []}){
                                 }
 
                             },0)
-
+                            if(tile.treasure === "generator" && !game.players[activePlayerIndex].isAI){
+                                return { ...tile, treasure: "generator_active", playerId: activePlayerIndex };
+                            }
                             return { ...tile, treasure: null, playerId: activePlayerIndex };
                         }
+
                         return tile
                         }
                     )

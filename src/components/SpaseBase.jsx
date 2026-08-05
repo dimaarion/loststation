@@ -22,7 +22,7 @@ export default function SpaseBase({tileRotate,type, translate, rotation, onClick
         case 'locked':
             return <SpaceTileLocked   complete={complete} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
         case 'auto_rotate':
-            return <SpaceTileAuto angle={rotation}  complete={complete} treasure={treasure}  onClick={onClick} translate={translate} angle={rotation} />
+            return <SpaceTileAuto    tileRotate={tileRotate} player={player} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
         default:
 
     }

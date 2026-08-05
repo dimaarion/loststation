@@ -66,7 +66,7 @@ export default function MessageLevel(){
                     <Btn x={110} y={50} scale={0.2} fontSize={70} text={"Закрыть"} ty={155} tx={80} />
                 </g>
                 <g transform={"scale(0.6) translate(225 40)"}>
-                    <Treasures  treasure={questLevel.fixedTreasures.type}/>
+                    <Treasures size={80}  treasure={questLevel.fixedTreasures.type}/>
                 </g>
                 <rect x={20} y={45} rx={8} fill={"#000"} width={70} height={20} />
                 <text x={25} y={61} fontSize={20} fill={"#a7cde4"}>{questTarget}</text>

@@ -1426,19 +1426,19 @@ export const SpaceTileLogData = (props) => {
     );
 };
 
-export const SpaceTileGenerator = (props) => {
+export const SpaceTileGenerator = ({size, active = false}) => {
     const baseId = useId();
     const bronzeGradId = `${baseId}-bronze_grad`;
     const sparkGlowId = `${baseId}-spark_glow`;
-
+console.log(active)
     return (
         <svg
-            width="100"
-            height="100"
+            width={size}
+            height={size}
             viewBox="0 0 100 100"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            {...props}
+
         >
             <defs>
                 <linearGradient
@@ -1463,14 +1463,7 @@ export const SpaceTileGenerator = (props) => {
                 </filter>
             </defs>
 
-            <rect
-                width="100"
-                height="100"
-                rx="8"
-                fill="#1A1F26"
-                stroke="#0D1117"
-                strokeWidth="2"
-            />
+
 
             <g transform="translate(50, 50)">
                 <rect
@@ -1499,14 +1492,14 @@ export const SpaceTileGenerator = (props) => {
                 />
 
                 <g>
-                    <animateTransform
+                    {active?<animateTransform
                         attributeName="transform"
                         type="rotate"
                         from="0"
                         to="360"
                         dur="4s"
-                        repeatCount="indefinite"
-                    />
+                        repeatCount={"indefinite"}
+                    />:""}
 
                     <rect x="-2" y="-35" width="4" height="70" fill="#0D1117" />
 
