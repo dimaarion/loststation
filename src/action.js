@@ -1,9 +1,3 @@
-
-export const TILE_TYPES = ['straight', 'corner', 't_shape'];
-
-export const DROID_TYPE = ["base","II-88","CRAB-M","II-88","II-88","II-88"]
-
-
 export function routable(n) {
     return Math.PI / 180 * n;
 }
@@ -23,19 +17,31 @@ export function getRandomInt(min, max) {
  */
 const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
     const treasures = [];
-    const types = ['energy_core','generator', 'Gravity Booster', 'alien_artifact', 'Quantum Wrench', 'Void Radar', 'Plasma Cutter', 'leg-data'];
 
-    // 1. Проверки на размеры сетки
+    // 1. Фильтруем типы: исключаем те сокровища, у которых в fixedTreasures количество установлено в 0
+    const allTypes = [
+        'energy_core',
+        'generator',
+        'Gravity Booster',
+        'alien_artifact',
+        'Quantum Wrench',
+        'Void Radar',
+        'Plasma Cutter',
+        'leg-data',
+        'nav_chip'
+    ];
+    const randomPoolTypes = allTypes.filter(type => fixedTreasures[type] !== 0);
+
+    // Размеры сетки
     const finalCount = Math.max(1, count);
     const maxAvailableCells = (gridSize - 2) * (gridSize - 2);
     const safeCount = Math.min(finalCount, maxAvailableCells);
 
-    // Вспомогательная функция для безопасного добавления уникальной позиции
+    // Вспомогательная функция для безопасного добавления позиций
     const addTreasure = (type) => {
         let added = false;
         let attempts = 0;
 
-        // Пытаемся найти свободную клетку (ограничиваем попытки на случай заполнения)
         while (!added && attempts < 100) {
             attempts++;
             const x = Math.floor(Math.random() * (gridSize - 2)) + 1;
@@ -49,8 +55,7 @@ const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
         }
     };
 
-    // 2. ГАРАНТИРОВАННЫЙ СПАВН ОБЯЗАТЕЛЬНЫХ СОКРОВИЩ
-    // Проходим по объекту fixedTreasures (например, { 'leg-data': 10, 'energy_core': 2 })
+    // 2. ГАРАНТИРОВАННЫЙ СПАВН (только для количества > 0)
     Object.entries(fixedTreasures).forEach(([type, requiredAmount]) => {
         for (let i = 0; i < requiredAmount; i++) {
             if (treasures.length < safeCount) {
@@ -59,10 +64,9 @@ const generateTreasuresList = (count, gridSize, fixedTreasures = {}) => {
         }
     });
 
-    // 3. РАНДОМНЫЙ СПАВН ОСТАВШЕГОСЯ КОЛИЧЕСТВА
-    // Заполняем свободные слоты случайными типами, пока не достигнем safeCount
-    while (treasures.length < safeCount) {
-        const randomType = types[Math.floor(Math.random() * types.length)];
+    // 3. РАНДОМНЫЙ СПАВН (используем отфильтрованный randomPoolTypes)
+    while (treasures.length < safeCount && randomPoolTypes.length > 0) {
+        const randomType = randomPoolTypes[Math.floor(Math.random() * randomPoolTypes.length)];
         addTreasure(randomType);
     }
 
@@ -90,10 +94,17 @@ export const generateMaze = (gridSize, level,id = "none",fixedTreasures = {}) =>
         default: { corner: 40, straight: 40, t_shape: 20, locked: 2 ,auto_rotate:0},
 
         // Уровень 1-2 (появляются заблокированные плитки)
-        '1-2':   { corner: 35, straight: 35, t_shape: 15, locked: 20,auto_rotate:0 },
+        '1-2':   { corner: 35, straight: 35, t_shape: 15, locked: 2,auto_rotate:0 },
         '1-3':   { corner: 35, straight: 35, t_shape: 15, locked: 4 ,auto_rotate:0},
         '2-2':   { corner: 30, straight: 30, t_shape: 20, locked: 0,auto_rotate:10 },
-        '2-3':   { corner: 30, straight: 30, t_shape: 20, locked: 10,auto_rotate:10 },
+        '2-3':   { corner: 30, straight: 30, t_shape: 20, locked: 2,auto_rotate:10 },
+        '3-1':   { corner: 30, straight: 30, t_shape: 20, locked: 0,auto_rotate:1,exit:6 },
+        '3-2':   { corner: 30, straight: 30, t_shape: 20, locked: 5,auto_rotate:10 },
+        '3-3':   { corner: 30, straight: 30, t_shape: 20, locked: 5,auto_rotate:10,sector:1 },
+        '3-4':   { corner: 30, straight: 30, t_shape: 20, locked: 5,auto_rotate:10 },
+        '4-1':   { corner: 30, straight: 30, t_shape: 20},
+        '4-2':   { corner: 35, straight: 35, t_shape: 15},
+        '4-3':   { corner: 35, straight: 35, t_shape: 15,sector:1},
         // Сложный сектор
         '5-2':   { corner: 30, straight: 30, t_shape: 20, locked: 20 ,auto_rotate:10},
     };
@@ -130,13 +141,84 @@ export const generateMaze = (gridSize, level,id = "none",fixedTreasures = {}) =>
                 type = 't_shape';
             }
 
+
+
             // 2. Случайный начальный поворот (0, 90, 180, 270 градусов)
             const rotations = [0, 90, 180, 270];
-            const rotation = rotations[Math.floor(Math.random() * rotations.length)];
+            let rotation = rotations[Math.floor(Math.random() * rotations.length)];
+            const SPECIAL_TILES = {
+                "3-1": {
+                    "1,1": { type: 'exit', rotation: 0 },
+                    "3,1": { type: 'exit', rotation: 0 },
+                    "5,2": { type: 'exit', rotation: 90 },
+                    "3,3": { type: 'exit', rotation: 180 },
+                    "1,3": { type: 'exit', rotation: 180 },
+                    "0,4": { type: 'exit', rotation: 90 },
+                },
+                "3-3": {
+                    // Ключ формируем динамически перед проверкой
+                    [`${gridSize - 2},${gridSize - 2}`]: { type: 'sector_4', rotation: 0 }
+                },
+                "4-1": {
+                    "0,4": { type: 'locked', rotation: 0 },
+                    "1,4": { type: 'locked', rotation: 0 },
+                    "2,4": { type: 'locked', rotation: 0 },
+                    "3,4": { type: 'locked', rotation: 0 },
+                    "4,4": { type: 'locked', rotation: 0 },
+                    "4,3": { type: 'locked', rotation: 0 },
+                    "4,2": { type: 'locked', rotation: 0 },
+                    "4,1": { type: 'locked', rotation: 0 },
+                    "4,0": { type: 'locked', rotation: 0 },
+                    "3,3": { type: 'portal', rotation: 0 },
+                    "6,7": { type: 'portal', rotation: 0 },
+                    "6,3": { type: 'portal', rotation: 0 },
+                    "5,4": { type: 'locked', rotation: 0 },
+                    "6,4": { type: 'locked', rotation: 0 },
+                    "7,4": { type: 'locked', rotation: 0 },
+                },
+                "4-2": {
+                    "2,2": { type: 'portal', rotation: 0 },
+                    "6,3": { type: 'portal', rotation: 0 },
+                    "3,6": { type: 'portal', rotation: 0 },
+                    "6,6": { type: 'portal', rotation: 0 },
+                },
+                "4-3": {
+                    // --- РАМКИ 3-Х ОСТРОВОВ (из locked) ---
+                    ...createLockedBox(-1, -1, 5, 5), // Забор Острова 1 (X: 0..3, Y: 0..3)
+                    ...createLockedBox(3, -1, 5, 5), // Забор Острова 2 (X: 5..8, Y: 0..3)
+                    ...createLockedBox(3, 3, 4, 4), // Забор Острова 3 (X: 3..6, Y: 5..8)
+
+                    // --- КЛЮЧЕВЫЕ ПЛИТКИ И ПОРТАЛЫ ---
+                    // Остров 1
+                    "2,2": { type: 'portal', rotation: 0 },
+
+                    // Остров 2
+                    "6,1": { type: 'portal', rotation: 0 },
+                    "7,1": { type: 'straight', rotation: 90, treasure: 'energy_core' },
+
+                    // Остров 3
+                    "4,6": { type: 'portal', rotation: 0 },
+                    "4,5": { type: 'sector', rotation: 0 } // Высадка с Портала 2 попадает прямо на СЕКТОР-04!
+                }
+            };
+
+// 💡 Применение в генераторе/цикле:
+            const key = `${x},${y}`;
+            const override = SPECIAL_TILES[id]?.[key];
+
+            if (override) {
+                type = override.type;
+                rotation = override.rotation;
+            }
+
             const playerId = -1
+            let isFixed = false;
             // 3. Проверяем, должно ли на этой плитке лежать сокровище
             const treasureFound = treasuresList.find(t => t.x === x && t.y === y);
             const treasure = getTileTreasure(type,treasureFound,[] ,[])
+            if(type === "exit"){
+                isFixed = true;
+            }
 
             // 4. Собираем объект плитки
             row.push({
@@ -147,7 +229,8 @@ export const generateMaze = (gridSize, level,id = "none",fixedTreasures = {}) =>
                 rotation,
                 treasure,
                 playerId,
-                isExplored: false // Для механики тумана войны
+                isExplored: false, // Для механики тумана войны
+                isFixed:isFixed
             });
         }
         newBoard.push(row);
@@ -176,35 +259,52 @@ function getTileTreasure(tile,treasureFound){
 
 // Базовая проходимость при rotation = 0 [Вверх, Вправо, Вниз, Влево]
 const TILE_EXITS = {
-    straight: [true, false, true, false],  // Прямая (проход Вверх-Вниз)
-    corner:   [false, true, true, false],  // Угол (проход Вниз-Вправо)
-    t_shape:  [false, true, true, true], //Т-образная (Вверх-Вправо-Влево)
-    blocking:  [true, false, true, false],
-    gateway:  [true, true, true, true],
-    locked:  [false, false, false, false],
-    auto_rotate:  [false, false, false, true],
+    straight:    [true, false, true, false],
+    corner:      [false, true, true, false],
+    t_shape:     [false, true, true, true],
+    blocking:    [true, false, true, false],
+    gateway:     [true, true, true, true],
+    locked:      [false, false, false, false],
+    auto_rotate: [false, false, false, true],
+    exit:        [false, "OUT", false, "IN"],
+    sector:        [false, false, true, false],
+    portal:        [true, true, true, true],
+
+    // 🚪 НОВЫЕ ОДНОСТОРОННИЕ ПЛИТКИ:
+    // Односторонний клапан (при rot=0: Войти можно СЛЕВА, Выйти можно ВПРАВО)
+    one_way:     [false, "OUT", false, "IN"],
+
+    // Плитка-ловушка (при rot=0: Зайти можно с 3 сторон, а выйти только ВВЕРХ)
+    one_way_exit: ["OUT", "IN", "IN", "IN"]
 };
 
 // Получить выходы с учетом текущего поворота плитки
 const getRotatedExits = (type, rotation) => {
-    const base = TILE_EXITS[type];
-    const shifts = (rotation / 90) % 4; // 0, 1, 2 или 3 сдвига
+    const base = TILE_EXITS[type] || [false, false, false, false];
+    const shifts = (rotation / 90) % 4;
     if (shifts === 0) return base;
 
-    // Циклический сдвиг массива вправо
     return [...base.slice(4 - shifts), ...base.slice(0, 4 - shifts)];
 };
 
-// Проверка стыковки двух соседних плиток
+// Проверка возможности сделать шаг ИЗ tileA В tileB
+// dir: 0 = Вверх, 1 = Вправо, 2 = Вниз, 3 = Влево
 const canMoveBetween = (tileA, tileB, dir) => {
     const exitsA = getRotatedExits(tileA.type, tileA.rotation);
     const exitsB = getRotatedExits(tileB.type, tileB.rotation);
 
-    // dir: 0 = Вверх, 1 = Вправо, 2 = Вниз, 3 = Влево (относительно плитки А)
-    // Противоположное направление для плитки Б:
     const oppositeDir = (dir + 2) % 4;
 
-    return exitsA[dir] && exitsB[oppositeDir];
+    const exitA = exitsA[dir];
+    const enterB = exitsB[oppositeDir];
+
+    // Проверяем возможность ВЫХОДА из плитки А в направлении dir
+    const canExitA = exitA === true || exitA === "OUT";
+
+    // Проверяем возможность ВХОДА в плитку Б с направления oppositeDir
+    const canEnterB = enterB === true || enterB === "IN";
+
+    return canExitA && canEnterB;
 };
 
 
@@ -385,3 +485,15 @@ export function getObjectivesTarget(quests,game){
     return quests.filter((el)=>el.sectorId === game.selectLevel).map((lev)=>lev.levels.find((levF)=>levF.id=== game.id))[0].objectives.main.target;
 }
 
+export const createLockedBox = (startX, startY, width, height) => {
+    const config = {};
+    for (let y = startY; y < startY + height; y++) {
+        for (let x = startX; x < startX + width; x++) {
+            // Если это край рамки — ставим locked
+            if (x === startX || x === startX + width - 1 || y === startY || y === startY + height - 1) {
+                config[`${x},${y}`] = { type: 'locked', rotation: 0 };
+            }
+        }
+    }
+    return config;
+};

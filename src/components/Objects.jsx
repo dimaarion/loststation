@@ -1554,6 +1554,81 @@ console.log(active)
     );
 };
 
+export const SpaceTileChip = ({size}) => {
+    const baseId = useId();
+    const chipGlowId = `${baseId}-chipGlow`;
+
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 130 130"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            x={27}
+            y={27}
+        >
+            <defs>
+                <filter id={chipGlowId} x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+                    <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <g transform="translate(50, 50)">
+                <path
+                    d="M-28 -15H-35M-28 -5H-35M-28 5H-35M-28 15H-35
+             M28 -15H35M28 -5H35M28 5H35M28 15H35
+             M-15 -28V-35M-5 -28V-35M5 -28V-35M15 -28V-35
+             M-15 28V35M-5 28V35M5 28V35M15 28V35"
+                    stroke="#F59E0B"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                />
+
+                <rect
+                    x="-26"
+                    y="-26"
+                    width="52"
+                    height="52"
+                    rx="6"
+                    fill="#0D1117"
+                    stroke="#1F2937"
+                    strokeWidth="2"
+                />
+
+                <rect
+                    x="-14"
+                    y="-14"
+                    width="28"
+                    height="28"
+                    rx="3"
+                    fill="#161B22"
+                    stroke="#00F0FF"
+                    strokeWidth="1.5"
+                />
+
+                <g
+                    stroke="#00F0FF"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    filter={`url(#${chipGlowId})`}
+                >
+                    <path d="M-14 0H-6M14 0H6M0 -14V-6M0 14V6" />
+                    <circle cx="0" cy="0" r="3" fill="#00F0FF" />
+                </g>
+
+                <circle cx="-20" cy="-20" r="2" fill="#F59E0B" />
+            </g>
+        </svg>
+    );
+};
+
+
+
 const styles = {
     main: {
         cursor: "pointer",

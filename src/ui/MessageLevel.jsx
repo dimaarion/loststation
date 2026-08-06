@@ -26,6 +26,8 @@ export default function MessageLevel(){
         loop:false
     }),[])
 
+
+
     return <g transform={`translate(0 50)`}>
         <animated.g style={translateBtn}>
             <g onPointerDown={()=>{

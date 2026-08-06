@@ -24,7 +24,7 @@ export default function GameOne({width, height, ratio}){
     let t = quests.filter((el)=>el.sectorId === selectLevel).find((el)=>el).levels.find((el)=>el.id === selectLevel + "-" + levelId);
     return t ? t.fixedTreasures : {};
     }
-console.log(levelId)
+
     return <g>
         <defs>
             <linearGradient id="bg_game_one" gradientUnits="userSpaceOnUse" x1="30%" y1="0" x2="90%" y2="100%">

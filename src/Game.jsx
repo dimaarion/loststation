@@ -145,7 +145,10 @@ export default function Game({mode = "SINGLE", maze = []}){
             }
 
             const [nextX, nextY] = route[currentStep];
+
             // Сдвигаем игрока на одну плитку вперёд по маршруту
+
+
             setGame({...game,
                players: game.players.map((p, idx) => {
                  return   idx === activePlayerIndex ? {...p, x: nextX, y: nextY, stepsLeft: Math.max(0, p.stepsLeft - 1)} : p
@@ -156,13 +159,63 @@ export default function Game({mode = "SINGLE", maze = []}){
             setBoard(prevBoard =>
                 prevBoard.map(row =>
                     row.map(tile => {
+
                         if(tile.type === "auto_rotate"){
                             tile.rotation +=90
                             if(tile.rotation === 360){
                                 tile.rotation = 0
                             }
                         }
-                        if( tile.x === nextX && tile.y === nextY && tile.treasure){
+
+                        if(tile.x === nextX && tile.y === nextY && tile.type === "exit" && activePlayerIndex === 0){
+                            useStore.getState().setQuestTarget()
+                        }
+                        if(tile.x === nextX && tile.y === nextY && tile.type === "sector" && activePlayerIndex === 0){
+                            useStore.getState().setQuestTarget()
+                        }
+
+                        if(tile.x === nextX && tile.y === nextY && tile.type === "portal" && game.id === "4-2" && activePlayerIndex === 0){
+                            useStore.getState().setQuestTarget()
+                        }
+                            if(tile.x === nextX && tile.y === nextY && tile.type === "portal"){
+                                const targetTile = board[nextY][nextX];
+                                let finalX = nextX;
+                                let finalY = nextY;
+
+                                if (targetTile.type === 'portal') {
+                                    // 1. Собираем ВСЕ порталы на карте в единый список (по порядку обхода сетки)
+                                    const allPortals = [];
+                                    board.forEach((row, r) => {
+                                        row.forEach((tile, c) => {
+                                            if (tile.type === 'portal') {
+                                                allPortals.push({ x: c, y: r });
+                                            }
+                                        });
+                                    });
+
+                                    if (allPortals.length > 1) {
+                                        // 2. Находим индекс текущего портала, на который наступил игрок
+                                        const currentIndex = allPortals.findIndex(p => p.x === nextX && p.y === nextY);
+
+                                        if (currentIndex !== -1) {
+                                            // 3. Берём СЛЕУЮЩИЙ портал в массиве (оператор % зацикливает последний на первый)
+                                            const nextIndex = (currentIndex + 1) % allPortals.length;
+                                            finalX = allPortals[nextIndex].x;
+                                            finalY = allPortals[nextIndex].y;
+                                        }
+                                    }
+                                }
+
+// Сдвигаем игрока
+                                setGame({...game,
+                                    players: game.players.map((p, idx) => {
+                                        return   idx === activePlayerIndex ? {...p, x: finalX, y: finalY - 1, stepsLeft: Math.max(0, p.stepsLeft - 1)} : p
+                                    })
+                                });
+                            }
+
+
+                        if(tile.x === nextX && tile.y === nextY && tile.treasure){
                             setTimeout(()=>{
                                 setPointsGame(activePlayerIndex)
                                 if(activePlayerIndex === 0){
@@ -374,23 +427,32 @@ export default function Game({mode = "SINGLE", maze = []}){
 
         // 3. ФАЗА ВРАЩЕНИЯ (ROTATE)
         if (gamePhase === 'ROTATE') {
-            // Если бот уже принял решение в этой фазе — игнорируем повторные срабатывания useEffect
             if (isBotActingRef.current) return;
-
-            // Ставим блок на повторные вызовы
             isBotActingRef.current = true;
 
             const timer = setTimeout(() => {
+                // Список типов плиток, которые НЕЛЬЗЯ вращать
+                const FORBIDDEN_ROTATE_TYPES = ['locked', 'exit'];
+
                 const clickableTiles = [];
                 for (let y = 0; y < board.length; y++) {
                     for (let x = 0; x < board[y].length; x++) {
+                        const tile = board[y][x];
                         const dist = Math.abs(currentPlayer.x - x) + Math.abs(currentPlayer.y - y);
-                        if (dist <= 1) clickableTiles.push(board[y][x]);
+
+                        // Фильтруем заблокированные плитки
+                        const canBeRotated = !FORBIDDEN_ROTATE_TYPES.includes(tile.type) && tile.canRotate !== false;
+
+                        if (dist <= 1 && canBeRotated) {
+                            clickableTiles.push(tile);
+                        }
                     }
                 }
 
+                // Если боту вообще нечего вращать вокруг
                 if (clickableTiles.length === 0) {
                     isBotActingRef.current = false;
+                    // skipTurn() или сперва сменить фазу игры
                     return;
                 }
 
@@ -404,7 +466,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                     });
                 });
 
-                // Проверяем все варианты вращения (включая плитку ПОД СОБОЙ)
+                // 1. Ищем прямой путь к сокровищу среди РАЗРЕШЕННЫХ плиток
                 for (let tile of clickableTiles) {
                     for (let angle of [90, 180, 270]) {
                         const simRotation = (tile.rotation + angle) % 360;
@@ -425,13 +487,12 @@ export default function Game({mode = "SINGLE", maze = []}){
                                 }
                             }
                         }
-
                         if (foundDirectTreasurePath) break;
                     }
                     if (foundDirectTreasurePath) break;
                 }
 
-                // Эвристика поиска наиболее выгодного поворота
+                // 2. Эвристика поиска лучшего поворота
                 if (!bestTileToRotate && treasures.length > 0) {
                     const nearestTr = treasures.reduce((best, curr) => {
                         const d1 = Math.abs(currentPlayer.x - best.x) + Math.abs(currentPlayer.y - best.y);
@@ -466,12 +527,16 @@ export default function Game({mode = "SINGLE", maze = []}){
                     }
                 }
 
-                // Резерв — крутим плитку под собой
-                if (!bestTileToRotate) {
-                    bestTileToRotate = board[currentPlayer.y][currentPlayer.x];
+                // 3. Безопасный резерв (только из разрешенных!)
+                if (!bestTileToRotate && clickableTiles.length > 0) {
+                    bestTileToRotate = clickableTiles[0];
                 }
 
-                handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
+                if (bestTileToRotate) {
+                    handleTileRotate(bestTileToRotate.x, bestTileToRotate.y);
+                } else {
+                    isBotActingRef.current = false;
+                }
 
             }, 800);
 
@@ -706,6 +771,7 @@ export default function Game({mode = "SINGLE", maze = []}){
                                     if (isHighlight) animateRoute(tileKey);
 
                                 }} key={`${el.x}-${el.y}`}>
+
                                     <SpaseBase tileRotate={tileRotate} player={game.players[activePlayerIndex]} treasure={el.treasure} type={el.type}
                                                translate={{x: el.x * 100, y: el.y * 100}}
                                                rotation={el.rotation} onClick={handleTileRotate}/>
@@ -718,8 +784,20 @@ export default function Game({mode = "SINGLE", maze = []}){
                                             stroke="#00F0FF" strokeWidth="3"
                                             style={{pointerEvents: 'none'}}
                                         />
-                                    )}
 
+                                    )}
+                                    {el.isFixed && (
+                                        <rect
+                                            x={el.x * 100}
+                                            y={el.y * 100}
+                                            width="100" height="100"
+                                            fill="#00F0FF" opacity="0"
+
+
+                                        />
+                                    )}
+                                    <text x={el.x * 100}
+                                          y={el.y * 100 + 10} fill={"white"} fontSize={10} >{el.type}</text>
                                 </g>
 
                             }))}

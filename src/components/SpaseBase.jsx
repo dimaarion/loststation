@@ -5,6 +5,9 @@ import SpaseTileBlocking from "./SpaseTileBlocking.jsx";
 import SpaceTileGateway from "./SpaceTileGateway.jsx";
 import SpaceTileLocked from "./SpaceTileLocked.jsx";
 import SpaceTileAuto from "./SpaceTileAuto.jsx";
+import SpaceTileExit from "./SpaceTileExit.jsx";
+import SpaceTileSector from "./SpaceTileSector.jsx";
+import SpaceTilePortal from "./SpaceTilePortal.jsx";
 
 export default function SpaseBase({tileRotate,type, translate, rotation, onClick, treasure, player, complete = false}) {
 
@@ -23,6 +26,12 @@ export default function SpaseBase({tileRotate,type, translate, rotation, onClick
             return <SpaceTileLocked   complete={complete} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
         case 'auto_rotate':
             return <SpaceTileAuto    tileRotate={tileRotate} player={player} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
+        case 'exit':
+            return <SpaceTileExit   tileRotate={tileRotate} player={player} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
+        case 'sector':
+            return <SpaceTileSector   tileRotate={tileRotate} player={player} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
+        case 'portal':
+            return <SpaceTilePortal   tileRotate={tileRotate} player={player} treasure={treasure} onClick={onClick} translate={translate} angle={rotation} />
         default:
 
     }

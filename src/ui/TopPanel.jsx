@@ -10,6 +10,9 @@ export default function TopPanel({players, count = 0, countTotal = 0, currentInd
          const game = useStore((state) => state.game);
          const pause = useStore((state) => state.pause);
          const credits = useStore((state) => state.credits);
+
+
+
     return <g>
         <LeftMenu active={active} />
         <rect width={"100%"} height={50} opacity={0.5} fill={"#152C3A"}/>
